@@ -117,6 +117,13 @@ class MondayBaseTest(BaseCase):
                 cls.OBEYS_START_DATE: False,
                 cls.API_LIMIT: 100
             },
+            "platform_api": {
+                cls.PRIMARY_KEYS: { "daily_analytics.last_update" },
+                cls.REPLICATION_METHOD: cls.INCREMENTAL,
+                cls.REPLICATION_KEYS: { "daily_analytics.last_update" },
+                cls.OBEYS_START_DATE: False,
+                cls.API_LIMIT: 100
+            },
             "reply": {
                 cls.PRIMARY_KEYS: { "id" },
                 cls.REPLICATION_METHOD: cls.INCREMENTAL,

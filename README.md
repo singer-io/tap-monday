@@ -32,6 +32,8 @@ This tap:
 
     - [Folders](https://developer.monday.com/api-reference/reference/folders#queries)
 
+    - [PlatformApi](https://developer.monday.com/api-reference/reference/platform-api#queries)
+
     - [Reply](https://developer.monday.com/api-reference/reference/other-types#reply)
 
     - [Tags](https://developer.monday.com/api-reference/reference/tags-1#queries)
@@ -110,6 +112,11 @@ This tap:
 - Data Key = data.folders
 - Primary keys: ['id']
 - Replication strategy: FULL_TABLE
+
+** [platform_api](https://developer.monday.com/api-reference/reference/platform-api#queries)**
+- Data Key = data.platform_api
+- Primary keys: ['daily_analytics.last_update']
+- Replication strategy: INCREMENTAL
 
 ** [reply](https://developer.monday.com/api-reference/reference/other-types#reply)**
 - Data Key = reply

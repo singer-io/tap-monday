@@ -10,6 +10,7 @@ from tap_monday.streams.board_views import BoardViews
 from tap_monday.streams.column_values import ColumnValues
 from tap_monday.streams.docs import Docs
 from tap_monday.streams.folders import Folders
+from tap_monday.streams.platform_api import PlatformApi
 from tap_monday.streams.reply import Reply
 from tap_monday.streams.tags import Tags
 from tap_monday.streams.teams import Teams
@@ -30,6 +31,7 @@ STREAMS = {
     "column_values": ColumnValues,
     "docs": Docs,
     "folders": Folders,
+    "platform_api": PlatformApi,
     "reply": Reply,
     "tags": Tags,
     "teams": Teams,
