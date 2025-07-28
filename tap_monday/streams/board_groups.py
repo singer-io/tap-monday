@@ -9,6 +9,7 @@ class BoardGroups(FullTableStream):
     tap_stream_id = "board_groups"
     key_properties = ["id", "board_id"]
     replication_method = "FULL_TABLE"
+    replication_keys = []
     data_key = "groups"
     path = "boards"
 

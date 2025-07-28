@@ -9,5 +9,6 @@ class Teams(FullTableStream):
     tap_stream_id = "teams"
     key_properties = ["id"]
     replication_method = "FULL_TABLE"
+    replication_keys = []
     data_key = "data.teams"
 

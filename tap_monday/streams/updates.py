@@ -17,7 +17,7 @@ class Updates(IncrementalStream):
         """A wrapper for singer.get_bookmark to deal with compatibility for
         bookmark values or start values."""
 
-       min_parent_bookmark = super().get_bookmark(state, stream) if self.is_selected() else None
+        min_parent_bookmark = super().get_bookmark(state, stream) if self.is_selected() else None
         for child in self.child_to_sync:
             if child.is_selected():
                 bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
@@ -39,5 +39,4 @@ class Updates(IncrementalStream):
             if child.is_selected():
                 bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
                 super().write_bookmark(state, child.tap_stream_id, key=bookmark_key, value=value)
-        
         return state

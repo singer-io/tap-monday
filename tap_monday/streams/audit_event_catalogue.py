@@ -9,5 +9,6 @@ class AuditEventCatalogue(FullTableStream):
     tap_stream_id = "audit_event_catalogue"
     key_properties = ["name"]
     replication_method = "FULL_TABLE"
+    replication_keys = []
     data_key = "data.audit_event_catalogue"
 

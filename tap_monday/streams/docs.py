@@ -9,5 +9,6 @@ class Docs(FullTableStream):
     tap_stream_id = "docs"
     key_properties = ["id"]
     replication_method = "FULL_TABLE"
+    replication_keys = []
     data_key = "data.docs"
 
