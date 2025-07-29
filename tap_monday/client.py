@@ -63,23 +63,44 @@ class Client:
     def check_api_credentials(self) -> None:
         pass
 
-    def authenticate(self, headers: Dict, params: Dict) -> Tuple[Dict, Dict]:
-        """Authenticates the request with the token"""
-        headers["Authorization"] = self.config["api_token"]
-        return headers, params
+    @property
+    def headers(self) -> Dict[str, str]:
+        """
+        Construct and return the HTTP headers required for requests to the Amazon Advertising API.
+        """
+        header = {
+            'Content-Type': 'application/json'
+        }
+        if api_version := self.config.get("api_version"):
+            header['API-Version'] = api_version
+        return header
 
-    def get(self, endpoint: str, params: Dict, headers: Dict, path: str = None) -> Any:
-        """Calls the make_request method with a prefixed method type `GET`"""
+    def authenticate(self, headers: Optional[Dict], params: Optional[Dict]) -> Tuple[Dict, Dict]:
+        """Provides authenticated headers"""
+        result_headers = self.headers.copy()
+        result_headers["Authorization"] = f"{self.config['api_token']}"
+        if headers:
+            result_headers.update(headers)
+        return result_headers, params
+
+    def make_request(
+        self,
+        method: str,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, Any]] = None,
+        body: Optional[Dict[str, Any]] = None,
+        path: Optional[str] = None
+    ) -> Any:
+        """
+        Sends an HTTP request to the specified API endpoint.
+        """
+        params = params or {}
+        headers = headers or {}
+        body = body or {}
         endpoint = endpoint or f"{self.base_url}/{path}"
         headers, params = self.authenticate(headers, params)
-        return self.__make_request("GET", endpoint, headers=headers, params=params, timeout=self.request_timeout)
-
-    def post(self, endpoint: str, params: Dict, headers: Dict, body: Dict, path: str = None) -> Any:
-        """Calls the make_request method with a prefixed method type `POST`"""
-
-        headers, params = self.authenticate(headers, params)
-        self.__make_request("POST", endpoint, headers=headers, params=params, data=body, timeout=self.request_timeout)
-
+        return self.__make_request(method, endpoint, headers=headers, params=params, data=body, timeout=self.request_timeout)
 
     @backoff.on_exception(
         wait_gen=backoff.expo,

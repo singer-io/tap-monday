@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, Iterator
 from singer import (
     Transformer,
     get_bookmark,
@@ -42,6 +42,8 @@ class BaseStream(ABC):
         self.metadata = metadata.to_map(catalog.metadata)
         self.child_to_sync = []
         self.params = {}
+        self.data_payload = {}
+        self.http_method = "POST"
 
     @property
     @abstractmethod
@@ -94,13 +96,13 @@ class BaseStream(ABC):
         """
 
 
-    def get_records(self) -> List:
+    def get_records(self) -> Iterator:
         """Interacts with api client interaction and pagination."""
         self.params["page"] = self.page_size
         next_page = 1
         while next_page:
-            response = self.client.get(
-                self.url_endpoint, self.params, self.headers, self.path
+            response = self.client.make_request(
+                self.http_method, self.url_endpoint, self.params, self.headers, body=self.data_payload, path=self.path
             )
             raw_records = response.get(self.data_key, [])
             next_page = response.get(self.next_page_key)
@@ -200,7 +202,7 @@ class IncrementalStream(BaseStream):
                         child.sync(state=state, transformer=transformer, parent_obj=record)
 
             state = self.write_bookmark(state, self.tap_stream_id, value=current_max_bookmark_date)
-            return counter.value
+            return counter.value, state
 
 
 class FullTableStream(BaseStream):
@@ -226,5 +228,5 @@ class FullTableStream(BaseStream):
                 for child in self.child_to_sync:
                     child.sync(state=state, transformer=transformer, parent_obj=record)
 
-            return counter.value
+            return counter.value, state
 

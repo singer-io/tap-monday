@@ -188,6 +188,7 @@ This tap:
         "start_date": "2019-01-01T00:00:00Z",
         "user_agent": "tap-monday <api_user_email@your_company.com>",
         "request_timeout": 300,
+        "api_version": "api_version"
     }
     ```
 

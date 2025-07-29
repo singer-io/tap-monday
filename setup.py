@@ -15,6 +15,11 @@ setup(name="tap-monday",
         "requests==2.32.4",
         "backoff==2.2.1"
       ],
+      extras_require={
+          'dev': [
+              'pylint'
+          ]
+      },
       entry_points="""
           [console_scripts]
           tap-monday=tap_monday:main

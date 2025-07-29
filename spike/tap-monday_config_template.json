@@ -163,6 +163,18 @@
             "doc_link": "https://developer.monday.com/api-reference/reference/folders#queries"
         },
         {
+            "name": "platform_api",
+            "key_properties": [
+                "daily_analytics.last_update"
+            ],
+            "replication_method": "INCREMENTAL",
+            "replication_keys": ["daily_analytics.last_update"],
+            "path": "",
+            "data_key": "data.platform_api",
+            "parent": "",
+            "doc_link": "https://developer.monday.com/api-reference/reference/platform-api#queries"
+        },
+        {
             "name": "reply",
             "key_properties": [
                 "id"
@@ -237,7 +249,8 @@
         }
     ],
     "tap_tester_creds": {
-        "api_token": "TAP_MONDAY_API_TOKEN"
+        "api_token": "TAP_MONDAY_API_TOKEN",
+        "api_version": "TAP_MONDAY_API_VERSION"
     },
     "author": "Stitch",
     "third_party_dependencies": [

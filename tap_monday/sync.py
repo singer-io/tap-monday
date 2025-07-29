@@ -61,7 +61,7 @@ def sync(client: Client, config: Dict, catalog: singer.Catalog, state) -> None:
 
             LOGGER.info("START Syncing: {}".format(stream_name))
             update_currently_syncing(state, stream_name)
-            total_records = stream.sync(state=state, transformer=transformer)
+            total_records, state = stream.sync(state=state, transformer=transformer)
 
             update_currently_syncing(state, None)
             LOGGER.info(
