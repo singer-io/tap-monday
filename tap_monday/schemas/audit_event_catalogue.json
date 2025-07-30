@@ -1,1 +1,25 @@
-{}
+{
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "description": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "metadata_details": {
+            "type": [
+                "null",
+                "object"
+            ],
+            "additionalProperties": true
+        }
+    }
+}
+

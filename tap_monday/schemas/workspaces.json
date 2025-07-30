@@ -1,1 +1,178 @@
-{}
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "name": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "kind": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "description": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "state": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "date-time"
+        },
+        "is_default_workspace": {
+            "type": [
+                "null",
+                "boolean"
+            ]
+        },
+        "account_product": {
+            "type": [
+                "null",
+                "object"
+            ],
+            "properties": {
+                "default_workspace_id": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                "id": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                "kind": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                }
+            },
+            "additionalProperties": true
+        },
+        "settings": {
+            "type": [
+                "null",
+                "object"
+            ],
+            "properties": {
+                "icon": {
+                    "type": [
+                        "null",
+                        "object"
+                    ],
+                    "properties": {
+                        "color": {
+                            "type": [
+                                "null",
+                                "string"
+                            ]
+                        },
+                        "image": {
+                            "type": [
+                                "null",
+                                "string"
+                            ]
+                        }
+                    },
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        },
+        "owners_subscribers": {
+            "type": [
+                "null",
+                "array"
+            ],
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "name": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    }
+                },
+                "additionalProperties": true
+            }
+        },
+        "teams_subscribers": {
+            "type": [
+                "null",
+                "array"
+            ],
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "name": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    }
+                },
+                "additionalProperties": true
+            }
+        },
+        "users_subscribers": {
+            "type": [
+                "null",
+                "array"
+            ],
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "name": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    }
+                },
+                "additionalProperties": true
+            }
+        }
+    },
+    "additionalProperties": true
+}

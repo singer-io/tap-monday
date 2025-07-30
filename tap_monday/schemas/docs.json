@@ -1,1 +1,104 @@
-{}
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "creator_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "workspace_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "object_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "doc_folder_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "blocks": {
+            "type": [
+                "null",
+                "array"
+            ],
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "type": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "content": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    }
+                },
+                "additionalProperties": true
+            }
+        },
+        "created_at": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "date-time"
+        },
+        "doc_kind": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "name": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "relative_url": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "url": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "settings": {
+            "type": [
+                "null",
+                "string"
+            ]
+        }
+    },
+    "additionalProperties": true
+}
+
