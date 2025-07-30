@@ -1,1 +1,24 @@
-{}
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "name": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "color": {
+            "type": [
+                "null",
+                "string"
+            ]
+        }
+    },
+    "additionalProperties": true
+}

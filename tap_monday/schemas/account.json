@@ -1,1 +1,124 @@
-{}
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "show_timeline_weekends": {
+            "type": [
+                "null",
+                "boolean"
+            ]
+        },
+        "tier": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "slug": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "active_members_count": {
+            "type": [
+                "null",
+                "integer"
+            ]
+        },
+        "country_code": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "first_day_of_the_week": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "logo": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "name": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "plan": {
+            "type": [
+                "null",
+                "object"
+            ],
+            "properties": {
+                "period": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                "tier": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                "version": {
+                    "type": [
+                        "null",
+                        "integer"
+                    ]
+                }
+            }
+        },
+        "products": {
+            "type": [
+                "null",
+                "array"
+            ],
+            "items": {
+                "type": [
+                    "null",
+                    "object"
+                ],
+                "properties": {
+                    "id": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "kind": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "default_workspace_id": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    }
+                }
+            }
+        },
+        "sign_up_product_kind": {
+            "type": [
+                "null",
+                "string"
+            ]
+        }
+    }
+}
+

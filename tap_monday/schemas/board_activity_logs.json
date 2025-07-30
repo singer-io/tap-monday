@@ -1,1 +1,55 @@
-{}
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "board_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "user_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "account_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "entity": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "date-time"
+        },
+        "event": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "data": {
+            "type": [
+                "null",
+                "string"
+            ]
+        }
+    }
+}
+

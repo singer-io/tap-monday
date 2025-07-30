@@ -1,1 +1,64 @@
-{}
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "item_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "board_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "type": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "text": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "column": {
+            "type": [
+                "null",
+                "object"
+            ],
+            "properties": {
+                "id": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                },
+                "title": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                }
+            },
+            "additionalProperties": true
+        },
+        "value": {
+            "type": [
+                "null",
+                "string"
+            ]
+        }
+    },
+    "additionalProperties": true
+}
+
