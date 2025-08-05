@@ -11,4 +11,11 @@ class Folders(FullTableStream):
     replication_method = "FULL_TABLE"
     replication_keys = []
     data_key = "data.folders"
+    root_field = "folders"
+    object_to_id = {"parent": "parent", "workspace": "workspace"}
+    extra_fields = {
+        "parent": ["id"],
+        "workspace": ["id"]
+    }
+    excluded_fields = ["parent_id", "workspace_id"]
 

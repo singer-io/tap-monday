@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from singer import get_bookmark, get_logger
+from singer import get_logger
 from tap_monday.streams.abstracts import IncrementalStream
 
 LOGGER = get_logger()
@@ -12,12 +12,18 @@ class Boards(IncrementalStream):
     replication_keys = ["updated_at"]
     data_key = "data.boards"
     children = ["board_activity_logs", "board_columns", "board_groups", "board_items", "board_views"]
+    root_field = "boards"
+    object_to_id = {"creator": "creator", "top_group": "top_group"}
+    extra_fields = {
+        "creator": ["id"],
+        "top_group": ["id"]
+    }
+    excluded_fields = ['creator_id', 'top_group_id']
 
     def get_bookmark(self, state: Dict, stream: str, key: Any = None) -> int:
         """A wrapper for singer.get_bookmark to deal with compatibility for
         bookmark values or start values."""
-
-        min_parent_bookmark = super().get_bookmark(state, stream) if self.is_selected() else None
+        min_parent_bookmark = super().get_bookmark(state, stream) if self.is_selected() else ""
         for child in self.child_to_sync:
             if child.is_selected():
                 bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"

@@ -60,12 +60,6 @@
                     "items": {
                         "type": "object",
                         "properties": {
-                            "user_id": {
-                                "type": [
-                                    "null",
-                                    "string"
-                                ]
-                            },
                             "usage": {
                                 "type": [
                                     "null",
@@ -84,12 +78,6 @@
                     "items": {
                         "type": "object",
                         "properties": {
-                            "user_id": {
-                                "type": [
-                                    "null",
-                                    "string"
-                                ]
-                            },
                             "usage": {
                                 "type": [
                                     "null",
@@ -99,16 +87,16 @@
                         },
                         "additionalProperties": true
                     }
-                },
-                "last_updated": {
-                    "type": [
-                        "null",
-                        "string"
-                    ],
-                    "format": "date-time"
                 }
             },
             "additionalProperties": true
+        },
+        "last_updated": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "date-time"
         }
     },
     "additionalProperties": true
