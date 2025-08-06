@@ -24,6 +24,7 @@ class Reply(IncrementalStream):
         return self.bookmark_value
 
     def extract_replies(self, data):
+        """Extracts the list of replies from the given data dictionary."""
         all_replies = []
         for reply in data.get("replies", []):
             all_replies.append(reply)

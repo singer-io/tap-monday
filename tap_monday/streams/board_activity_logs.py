@@ -14,8 +14,10 @@ class BoardActivityLogs(IncrementalStream):
     data_key = "data.boards"
     parent = "boards"
     bookmark_value = None
-    root_field = "boards(ids: {ids}) {{ activity_logs"
+    page_size = 10000
+    root_field = """boards(ids: {ids}, limit:1, page:1) {{ activity_logs(limit:{limit}, page:{page})"""
     excluded_fields = ["board_id"]
+    pagination_supported = True
 
     def get_bookmark(self, state: Dict, key: Any = None) -> int:
         """
@@ -30,7 +32,8 @@ class BoardActivityLogs(IncrementalStream):
         """
         Update JSON body for GraphQL API. Injects query string if provided.
         """
-        root_field = self.root_field.format(ids=parent_obj["id"])
+        page = kwargs.get("page", 1)
+        root_field = self.root_field.format(ids=parent_obj["id"], limit=self.page_size, page=page)
         graphql_query = self.get_graphql_query(root_field) + "}"
         super().update_data_payload(graphql_query=graphql_query, parent_obj=parent_obj, **kwargs)
 
