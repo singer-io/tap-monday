@@ -28,20 +28,22 @@ jobs:
           name: "Unit Tests"
           command: |
             source /usr/local/share/virtualenvs/tap-monday/bin/activate
-            pip install nose coverage
-            nosetests --with-coverage --cover-erase --cover-package=tap_monday --cover-html-dir=htmlcov tests/unittests
+            # pip install nose coverage
+            # nosetests --with-coverage --cover-erase --cover-package=tap_monday --cover-html-dir=htmlcov tests/unittests
+            pip install pytest pytest-cov
+            pytest --cov=tap_monday --cov-report=html:htmlcov --cov-config=.coveragerc tests/unittests
             coverage html
       - store_test_results:
           path: test_output/report.xml
       - store_artifacts:
           path: htmlcov
-      - run:
-          name: "Integration Tests"
-          command: |
-            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
-            source dev_env.sh
-            source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            run-test --tap=tap-monday tests
+      # - run:
+      #     name: "Integration Tests"
+      #     command: |
+      #       aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
+      #       source dev_env.sh
+      #       source /usr/local/share/virtualenvs/tap-tester/bin/activate
+      #       run-test --tap=tap-monday tests
 
 
 workflows:

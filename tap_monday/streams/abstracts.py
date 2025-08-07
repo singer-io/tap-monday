@@ -25,7 +25,7 @@ class BaseStream(ABC):
      - Helper methods for catalog generation
      - `sync` and `get_records` method for performing sync
     """
-
+    _graphql_query = ""
     url_endpoint = ""
     path = ""
     page_size = 100
@@ -105,7 +105,6 @@ class BaseStream(ABC):
 
     def get_records(self, parent_record: Dict = None) -> Iterator:
         """Interacts with api client interaction and pagination."""
-        # self.params["page"] = self.page_size
         next_page = 1
         while next_page:
             response = self.client.make_request(

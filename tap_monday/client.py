@@ -32,6 +32,7 @@ def raise_for_error(response: requests.Response) -> None:
     if response.status_code not in [200, 201, 204] or "errors" in response_json:
         if response_json.get("errors"):
             error = "Exception occured"
+            error_extension = "Error Code"
             error_messages = response_json.get("errors", [])
             if error_messages:
                 error = error_messages[0].get("message")
