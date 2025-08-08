@@ -60,11 +60,25 @@
                     "items": {
                         "type": "object",
                         "properties": {
-                            "user_id": {
+                            "app": {
                                 "type": [
                                     "null",
-                                    "string"
-                                ]
+                                    "object"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    },
+                                    "name": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    }
+                                }
                             },
                             "usage": {
                                 "type": [
@@ -84,11 +98,25 @@
                     "items": {
                         "type": "object",
                         "properties": {
-                            "user_id": {
+                            "user": {
                                 "type": [
                                     "null",
-                                    "string"
-                                ]
+                                    "object"
+                                ],
+                                "properties":{
+                                    "id": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    },
+                                    "name": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    }
+                                }
                             },
                             "usage": {
                                 "type": [

@@ -57,6 +57,12 @@
                             "null",
                             "string"
                         ]
+                    },
+                    "name": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
                     }
                 },
                 "additionalProperties": true
