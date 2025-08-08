@@ -113,7 +113,6 @@ class BaseStream(ABC):
             )
             raw_records = self.get_dot_path_value(response, self.data_key)
             raw_records = self.parse_raw_records(raw_records)
-
             yield from raw_records
 
             # Move to the next page

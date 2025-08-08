@@ -60,6 +60,26 @@
                     "items": {
                         "type": "object",
                         "properties": {
+                            "app": {
+                                "type": [
+                                    "null",
+                                    "object"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    },
+                                    "name": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    }
+                                }
+                            },
                             "usage": {
                                 "type": [
                                     "null",
@@ -78,6 +98,26 @@
                     "items": {
                         "type": "object",
                         "properties": {
+                            "user": {
+                                "type": [
+                                    "null",
+                                    "object"
+                                ],
+                                "properties":{
+                                    "id": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    },
+                                    "name": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    }
+                                }
+                            },
                             "usage": {
                                 "type": [
                                     "null",
