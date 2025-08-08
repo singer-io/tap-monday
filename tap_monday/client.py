@@ -22,9 +22,9 @@ def raise_for_error(response: requests.Response) -> None:
         response_json = response.json()
     except Exception:
         response_json = {}
-    if response.status_code != [200, 201, 204]:
-        if response_json.get("error"):
-            message = "HTTP-error-code: {}, Error: {}".format(response.status_code, response_json.get("error"))
+    if response.status_code not in [200, 201, 204] or "errors" in response_json:
+        if response_json.get("errors"):
+            message = "HTTP-error-code: {}, Error: {}".format(response.status_code, response_json.get("errors"))
         else:
             message = "HTTP-error-code: {}, Error: {}".format(
                 response.status_code,
@@ -54,14 +54,10 @@ class Client:
         self.request_timeout = float(config_request_timeout) if config_request_timeout else REQUEST_TIMEOUT
 
     def __enter__(self):
-        self.check_api_credentials()
         return self
 
     def __exit__(self, exception_type, exception_value, traceback):
         self._session.close()
-
-    def check_api_credentials(self) -> None:
-        pass
 
     @property
     def headers(self) -> Dict[str, str]:
@@ -128,8 +124,13 @@ class Client:
             Dict,List,None: Returns a `Json Parsed` HTTP Response or None if exception
         """
         with metrics.http_request_timer(endpoint) as timer:
-            response = self._session.request(method, endpoint, **kwargs)
-            raise_for_error(response)
+            if method in ("GET", "POST"):
+                if method == "GET":
+                    kwargs.pop("data", None)
+                response = self._session.request(method, endpoint, **kwargs)
+                raise_for_error(response)
+            else:
+                raise ValueError(f"Unsupported method: {method}")
 
         return response.json()
 

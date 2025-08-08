@@ -117,37 +117,33 @@
                 "null",
                 "object"
             ],
-            "items": {
-                "type": "object",
-                "properties": {
-                    "active": {
-                        "type": [
-                            "null",
-                            "boolean"
-                        ]
-                    },
-                    "start_date": {
-                        "type": [
-                            "null",
-                            "string"
-                        ],
-                        "format": "date-time"
-                    },
-                    "end_date": {
-                        "type": [
-                            "null",
-                            "string"
-                        ],
-                        "format": "date-time"
-                    },
-                    "type": {
-                        "type": [
-                            "null",
-                            "string"
-                        ]
-                    }
+            "properties": {
+                "active": {
+                    "type": [
+                        "null",
+                        "boolean"
+                    ]
                 },
-                "additionalProperties": true
+                "start_date": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "format": "date-time"
+                },
+                "end_date": {
+                    "type": [
+                        "null",
+                        "string"
+                    ],
+                    "format": "date-time"
+                },
+                "type": {
+                    "type": [
+                        "null",
+                        "string"
+                    ]
+                }
             }
         },
         "phone": {
@@ -216,6 +212,6 @@
                 "number"
             ]
         }
-    },
-    "additionalProperties": true
+    }
 }
+
