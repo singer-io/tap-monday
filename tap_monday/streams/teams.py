@@ -11,4 +11,5 @@ class Teams(FullTableStream):
     replication_method = "FULL_TABLE"
     replication_keys = []
     data_key = "data.teams"
+    root_field = "teams"
 

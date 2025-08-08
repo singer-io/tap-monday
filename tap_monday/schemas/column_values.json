@@ -42,12 +42,6 @@
                         "null",
                         "string"
                     ]
-                },
-                "title": {
-                    "type": [
-                        "null",
-                        "string"
-                    ]
                 }
             },
             "additionalProperties": true

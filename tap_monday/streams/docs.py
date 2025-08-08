@@ -1,4 +1,3 @@
-from typing import Dict, Iterator, List
 from singer import get_logger
 from tap_monday.streams.abstracts import FullTableStream
 
@@ -11,4 +10,10 @@ class Docs(FullTableStream):
     replication_method = "FULL_TABLE"
     replication_keys = []
     data_key = "data.docs"
+    object_to_id = {"created_by": "creator"}
+    root_field = "docs"
+    extra_fields = {
+        "created_by": ["id"]
+        }
+    excluded_fields = ["creator_id"]
 
