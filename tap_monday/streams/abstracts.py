@@ -31,7 +31,7 @@ class BaseStream(ABC):
     page_size = 100
     next_page_key = "page"
     headers = {'Accept': 'application/json'}
-    object_to_id = []
+    object_to_id = {}
     children = []
     parent = ""
     data_key = ""
@@ -139,9 +139,20 @@ class BaseStream(ABC):
         self.params.update(kwargs)
 
     def add_object_to_id(self, record: Dict) -> Dict:
-        """Add object_to_id to the stream."""
+        """
+        Adds identifier fields to a record based on nested object mappings.
+        For each key in `self.object_to_id`, this method checks if the corresponding
+        value in the input `record` is not None. If it exists, it extracts the `"id"`
+        field from the nested dictionary and assigns it to a new key in the record,
+        named using the mapped value plus `"_id"`. If the original value is None,
+        the new key is set to None.
+        Args:
+            record (Dict): A dictionary representing a single record with nested objects.
+        Returns:
+            Dict: The modified record with additional `*_id` fields.
+        """
         for key in self.object_to_id:
-            if record[key] is not None:
+            if record[key]:
                 record[self.object_to_id[key] + "_id"] = record[key]["id"]
             else:
                 record[key + "_id"] = None
@@ -169,6 +180,19 @@ class BaseStream(ABC):
     def get_dot_path_value(self, record: dict, dotted_path: str, default=None):
         """
         Safely retrieve a nested value from a dictionary using a dotted key path.
+        This method navigates through a dictionary using a dot-separated string
+        (e.g., "user.address.city") to access deeply nested values.
+        If the path does not exist at any point, it returns the provided `default`.
+        If the resolved value is a dictionary, it returns a single-element list
+        containing that dictionary. If the resolved value is already a list,
+        it returns the list as-is.
+        Args:
+            record (dict): The input dictionary to traverse.
+            dotted_path (str): A dot-separated string specifying the path to the value.
+            default: The value to return if the path does not exist. Defaults to None.
+        Returns:
+            list | Any: A list (if the value is a dict or already a list),
+            or the default value if the path is not found.
         """
         keys = dotted_path.split(".")
         value = record
