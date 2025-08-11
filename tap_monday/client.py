@@ -124,13 +124,13 @@ class Client:
         """
         with metrics.http_request_timer(endpoint) as timer:
             method = method.upper()
-            if method in ("GET", "POST"):
-                if method == "GET":
-                    kwargs.pop("data", None)
-                response = self._session.request(method, endpoint, **kwargs)
-                raise_for_error(response)
-            else:
+            if method not in ("GET", "POST"):
                 raise ValueError(f"Unsupported method: {method}")
+
+            if method == "GET":
+                kwargs.pop("data", None)
+            response = self._session.request(method, endpoint, **kwargs)
+            raise_for_error(response)
 
         return response.json()
 

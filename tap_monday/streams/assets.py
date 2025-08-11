@@ -7,7 +7,7 @@ LOGGER = get_logger()
 
 class Assets(FullTableStream):
     tap_stream_id = "assets"
-    key_properties = ["id"]
+    key_properties = ["id", "update_id"]
     replication_method = "FULL_TABLE"
     replication_keys = []
     data_key = "assets"

@@ -7,7 +7,7 @@ LOGGER = get_logger()
 
 class Reply(IncrementalStream):
     tap_stream_id = "reply"
-    key_properties = ["id"]
+    key_properties = ["id", "update_id"]
     replication_method = "INCREMENTAL"
     replication_keys = ["updated_at"]
     data_key = "reply"
