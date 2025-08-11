@@ -24,7 +24,7 @@ class BoardGroups(FullTableStream):
     def modify_object(self, record: Dict, parent_record: Dict = None) -> Dict:
         """Modify the record before writing to the stream."""
         record = super().modify_object(record, parent_record)
-        record["board_id"] = parent_record["id"]
+        record["board_id"] = parent_record.get("id")
         return record
 
     def parse_raw_records(self, raw_data: Any) -> List[Dict]:
