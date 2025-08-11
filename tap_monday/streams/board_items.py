@@ -7,7 +7,7 @@ LOGGER = get_logger()
 
 class BoardItems(IncrementalStream):
     tap_stream_id = "board_items"
-    key_properties = ["id"]
+    key_properties = ["id", "board_id"]
     replication_method = "INCREMENTAL"
     replication_keys = ["updated_at"]
     data_key = "data.boards"
