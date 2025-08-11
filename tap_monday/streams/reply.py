@@ -32,7 +32,7 @@ class Reply(IncrementalStream):
     def modify_object(self, record: Dict, parent_record: Dict = None) -> Dict:
         """Modify the record before writing to the stream."""
         record = super().modify_object(record, parent_record)
-        record["update_id"] = parent_record["id"]
+        record["update_id"] = parent_record.get("id")
         return record
 
     def sync(self, state: Dict, transformer: Transformer, parent_obj: Dict = None) -> Dict:
