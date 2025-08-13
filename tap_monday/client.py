@@ -1,4 +1,5 @@
 from typing import Any, Dict, Mapping, Optional, Tuple
+import time
 
 import backoff
 import requests
@@ -6,7 +7,13 @@ from requests import session
 from requests.exceptions import Timeout, ConnectionError, ChunkedEncodingError
 from singer import get_logger, metrics
 
-from tap_monday.exceptions import ERROR_CODE_EXCEPTION_MAPPING, MondayError, MondayBackoffError
+from tap_monday.exceptions import (
+    ERROR_CODE_EXCEPTION_MAPPING,
+    MondayError,
+    MondayRateLimitError,
+    MondayInternalServerError,
+    MondayBadGatewayError,
+    MondayServiceUnavailableError)
 
 LOGGER = get_logger()
 REQUEST_TIMEOUT = 300
@@ -24,7 +31,12 @@ def raise_for_error(response: requests.Response) -> None:
         response_json = {}
     if response.status_code not in [200, 201, 204] or "errors" in response_json:
         if response_json.get("errors"):
-            message = "HTTP-error-code: {}, Error: {}".format(response.status_code, response_json.get("errors"))
+            error = "Exception occured"
+            error_messages = response_json.get("errors", [])
+            if error_messages:
+                error = error_messages[0].get("message")
+                error_extension = error_messages[0].get("extensions", {}).get("code")
+            message = "HTTP-error-code: {}, Error: {}, Error Extensions: {}".format(response.status_code, error, error_extension)
         else:
             message = "HTTP-error-code: {}, Error: {}".format(
                 response.status_code,
@@ -33,6 +45,14 @@ def raise_for_error(response: requests.Response) -> None:
         exc = ERROR_CODE_EXCEPTION_MAPPING.get(
             response.status_code, {}).get("raise_exception", MondayError)
         raise exc(message, response) from None
+
+def wait_if_retry_after(details):
+    """Backoff handler that checks for a 'retry_after' attribute in the exception
+    and sleeps for the specified duration to respect API rate limits.
+    """
+    exc = details['exception']
+    if hasattr(exc, 'retry_after') and exc.retry_after is not None:
+        time.sleep(exc.retry_after)  # Force exact wait
 
 class Client:
     """
@@ -48,7 +68,6 @@ class Client:
         self.config = config
         self._session = session()
         self.base_url = "https://api.monday.com/v2"
-
 
         config_request_timeout = config.get("request_timeout")
         self.request_timeout = float(config_request_timeout) if config_request_timeout else REQUEST_TIMEOUT
@@ -99,16 +118,19 @@ class Client:
         return self.__make_request(method, endpoint, headers=headers, params=params, data=body, timeout=self.request_timeout)
 
     @backoff.on_exception(
-        wait_gen=backoff.expo,
+        wait_gen=lambda: backoff.expo(factor=2),
+        on_backoff=wait_if_retry_after,
         exception=(
             ConnectionResetError,
             ConnectionError,
             ChunkedEncodingError,
             Timeout,
-            MondayBackoffError
+            MondayRateLimitError,
+            MondayInternalServerError,
+            MondayBadGatewayError,
+            MondayServiceUnavailableError
         ),
-        max_tries=5,
-        factor=2,
+        max_tries=5
     )
     def __make_request(self, method: str, endpoint: str, **kwargs) -> Optional[Mapping[Any, Any]]:
         """
