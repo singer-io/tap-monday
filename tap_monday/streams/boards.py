@@ -12,7 +12,9 @@ class Boards(IncrementalStream):
     replication_keys = ["updated_at"]
     data_key = "data.boards"
     children = ["board_activity_logs", "board_columns", "board_groups", "board_items", "board_views"]
-    root_field = "boards"
+    root_field = "boards(limit:{limit}, page:{page})"
+    page_size = 300
+    pagination_supported = True
     object_to_id = {"creator": "creator", "top_group": "top_group"}
     extra_fields = {
         "creator": ["id"],
@@ -47,4 +49,13 @@ class Boards(IncrementalStream):
                 super().write_bookmark(state, child.tap_stream_id, key=bookmark_key, value=value)
 
         return state
+
+    def update_data_payload(self, graphql_query: str = None, parent_obj: Dict = None, **kwargs) -> None:
+        """
+        Update JSON body for GraphQL API. Injects query string if provided.
+        """
+        page = kwargs.get("page", 1)
+        root_field = self.root_field.format(limit=self.page_size, page=page)
+        graphql_query = self.get_graphql_query(root_field)
+        super().update_data_payload(graphql_query=graphql_query, parent_obj=parent_obj, **kwargs)
 

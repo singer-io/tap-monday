@@ -40,6 +40,8 @@ class BaseStream(ABC):
     root_field = None
     extra_fields = {}
     excluded_fields = []
+    pagination_supported = False
+    cursor = None
 
     def __init__(self, client=None, catalog=None) -> None:
         self.client = client
@@ -67,7 +69,7 @@ class BaseStream(ABC):
 
     @property
     @abstractmethod
-    def replication_keys(self) -> str:
+    def replication_keys(self) -> List:
         """Defines the replication key for incremental sync mode of a
         stream."""
 
@@ -101,7 +103,7 @@ class BaseStream(ABC):
          - https://github.com/singer-io/getting-started/blob/master/docs/SYNC_MODE.md
         """
 
-    def get_records(self) -> Iterator:
+    def get_records(self, parent_record: Dict = None) -> Iterator:
         """Interacts with api client interaction and pagination."""
         # self.params["page"] = self.page_size
         next_page = 1
@@ -111,10 +113,12 @@ class BaseStream(ABC):
             )
             raw_records = self.get_dot_path_value(response, self.data_key)
             raw_records = self.parse_raw_records(raw_records)
-            next_page = response.get(self.next_page_key)
-
-            # self.params[self.next_page_key] = next_page
             yield from raw_records
+
+            # Move to the next page
+            is_next_page, next_page = self.update_pagination_key(raw_records, parent_record, next_page)
+            if not is_next_page:
+                break
 
     def write_schema(self) -> None:
         """
@@ -143,7 +147,6 @@ class BaseStream(ABC):
                 record[self.object_to_id[key] + "_id"] = record[key]["id"]
             else:
                 record[key + "_id"] = None
-
         return record
 
     def modify_object(self, record: Dict, parent_record: Dict = None) -> Dict:
@@ -187,6 +190,17 @@ class BaseStream(ABC):
     def parse_raw_records(self, raw_data: Any) -> List[Dict]:
         """Default implementation — override if structure varies."""
         return raw_data or []
+
+    def update_pagination_key(self, raw_records, parent_record, next_page):
+        """Updates the pagination key for fetching the next page of results."""
+        is_next_page = True
+        if not self.pagination_supported:
+            return False, next_page
+        if not raw_records or len(raw_records) < self.page_size:
+            return False, next_page
+        next_page += 1
+        self.update_data_payload(self._graphql_query, parent_record, page=next_page)
+        return is_next_page, next_page
 
     def get_graphql_query(self, root_field: str, indent: int = 1, level: int = 1) -> str:
         """
@@ -320,18 +334,16 @@ class IncrementalStream(BaseStream):
         """Implementation for `type: Incremental` stream."""
         bookmark_date = self.get_bookmark(state, self.tap_stream_id)
         current_max_bookmark_date = bookmark_date
-        # self.update_params(updated_since=bookmark_date)
         self.url_endpoint = self.get_url_endpoint(parent_obj)
         self._graphql_query = self.get_graphql_query(self.root_field)
         self.update_data_payload(graphql_query=self._graphql_query, parent_obj=parent_obj)
 
         with metrics.record_counter(self.tap_stream_id) as counter:
-            for record in self.get_records():
+            for record in self.get_records(parent_obj):
                 record = self.modify_object(record, parent_obj)
                 transformed_record = transformer.transform(
                     record, self.schema, self.metadata
                 )
-
                 record_timestamp = transformed_record[self.replication_keys[0]]
                 if record_timestamp >= bookmark_date:
                     if self.is_selected():
@@ -360,14 +372,13 @@ class FullTableStream(BaseStream):
         self._graphql_query = self.get_graphql_query(self.root_field)
         self.url_endpoint = self.get_url_endpoint(parent_obj)
         self.update_data_payload(graphql_query=self._graphql_query, parent_obj=parent_obj)
-        # self.update_params(parent_obj=parent_obj)
         with metrics.record_counter(self.tap_stream_id) as counter:
-            for record in self.get_records():
+            for record in self.get_records(parent_obj):
                 record = self.modify_object(record, parent_obj)
                 transformed_record = transformer.transform(
                     record, self.schema, self.metadata
                 )
-                if self.is_selected:
+                if self.is_selected():
                     write_record(self.tap_stream_id, transformed_record)
                     counter.increment()
 
