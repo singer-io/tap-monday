@@ -17,6 +17,8 @@ class BoardGroups(FullTableStream):
 
     def update_data_payload(self, graphql_query: str = None, parent_obj: Dict = None, **kwargs) -> None:
         """Update JSON body for GraphQL API. Injects query string if provided."""
+        if not parent_obj or 'id' not in parent_obj:
+            raise ValueError(f"{self.tap_stream_id} - parent_obj must be provided with an 'id' key.")
         root_field = self.root_field.format(ids=parent_obj["id"])
         graphql_query = self.get_graphql_query(root_field) + "}"
         super().update_data_payload(graphql_query=graphql_query, parent_obj=parent_obj, **kwargs)

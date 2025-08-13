@@ -13,7 +13,7 @@ class Docs(FullTableStream):
     data_key = "data.docs"
     object_to_id = {"created_by": "creator"}
     root_field = "docs(limit:{limit}, page:{page})"
-    page_size = 300
+    page_size = 200
     pagination_supported = True
     extra_fields = {
         "created_by": ["id"]
@@ -25,5 +25,9 @@ class Docs(FullTableStream):
         page = kwargs.get("page", 1)
         root_field = self.root_field.format(limit=self.page_size, page=page)
         graphql_query = self.get_graphql_query(root_field)
-        super().update_data_payload(graphql_query=graphql_query, parent_obj=parent_obj, **kwargs)
+        super().update_data_payload(
+            graphql_query=graphql_query,
+            parent_obj=parent_obj,
+            **kwargs
+        )
 

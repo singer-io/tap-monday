@@ -13,7 +13,7 @@ class Boards(IncrementalStream):
     data_key = "data.boards"
     children = ["board_activity_logs", "board_columns", "board_groups", "board_items", "board_views"]
     root_field = "boards(limit:{limit}, page:{page})"
-    page_size = 300
+    page_size = 200
     pagination_supported = True
     object_to_id = {"creator": "creator", "top_group": "top_group"}
     extra_fields = {
@@ -23,18 +23,24 @@ class Boards(IncrementalStream):
     excluded_fields = ['creator_id', 'top_group_id']
 
     def get_bookmark(self, state: Dict, stream: str, key: Any = None) -> int:
-        """A wrapper for singer.get_bookmark to deal with compatibility for
-        bookmark values or start values."""
+        """
+        A wrapper for singer.get_bookmark to handle compatibility with both
+        parent and child stream bookmark values, excluding full-table replication children.
+        """
         min_parent_bookmark = super().get_bookmark(state, stream) if self.is_selected() else ""
         for child in self.child_to_sync:
-            if child.is_selected():
-                bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
-                child_bookmark = super().get_bookmark(state, child.tap_stream_id, key=bookmark_key)
-                if min_parent_bookmark:
-                    min_parent_bookmark = min(min_parent_bookmark, child_bookmark)
-                else:
-                    min_parent_bookmark = child_bookmark
+            if not child.is_selected():
+                continue
+            if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
+                continue  # Skip full-table replication children
 
+            bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
+            child_bookmark = super().get_bookmark(state, child.tap_stream_id, key=bookmark_key)
+
+            if min_parent_bookmark:
+                min_parent_bookmark = min(min_parent_bookmark, child_bookmark)
+            else:
+                min_parent_bookmark = child_bookmark
         return min_parent_bookmark
 
     def write_bookmark(self, state: Dict, stream: str, key: Any = None, value: Any = None) -> Dict:
@@ -44,10 +50,14 @@ class Boards(IncrementalStream):
             super().write_bookmark(state, stream, value=value)
 
         for child in self.child_to_sync:
-            if child.is_selected():
-                bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
-                super().write_bookmark(state, child.tap_stream_id, key=bookmark_key, value=value)
+            if not child.is_selected():
+                continue
 
+            if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
+                continue  # Skip full_table children
+
+            bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
+            super().write_bookmark(state, child.tap_stream_id, key=bookmark_key, value=value)
         return state
 
     def update_data_payload(self, graphql_query: str = None, parent_obj: Dict = None, **kwargs) -> None:

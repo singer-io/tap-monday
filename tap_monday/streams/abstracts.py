@@ -116,9 +116,7 @@ class BaseStream(ABC):
             yield from raw_records
 
             # Move to the next page
-            is_next_page, next_page = self.update_pagination_key(raw_records, parent_record, next_page)
-            if not is_next_page:
-                break
+            next_page = self.update_pagination_key(raw_records, parent_record, next_page)
 
     def write_schema(self) -> None:
         """
@@ -193,14 +191,13 @@ class BaseStream(ABC):
 
     def update_pagination_key(self, raw_records, parent_record, next_page):
         """Updates the pagination key for fetching the next page of results."""
-        is_next_page = True
         if not self.pagination_supported:
-            return False, next_page
+            return None
         if not raw_records or len(raw_records) < self.page_size:
-            return False, next_page
+            return None
         next_page += 1
         self.update_data_payload(self._graphql_query, parent_record, page=next_page)
-        return is_next_page, next_page
+        return next_page
 
     def get_graphql_query(self, root_field: str, indent: int = 1, level: int = 1) -> str:
         """
