@@ -111,7 +111,7 @@
             "replication_method": "INCREMENTAL",
             "replication_keys": ["updated_at"],
             "path": "",
-            "data_key": "data",
+            "data_key": "data.boards",
             "parent": "boards",
             "children": ["column_values"],
             "doc_link": "https://developer.monday.com/api-reference/reference/items#queries"

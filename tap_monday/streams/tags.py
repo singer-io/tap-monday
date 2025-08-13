@@ -1,3 +1,4 @@
+from typing import Dict, Iterator, List
 from singer import get_logger
 from tap_monday.streams.abstracts import FullTableStream
 

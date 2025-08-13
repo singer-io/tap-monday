@@ -49,6 +49,7 @@ class Client:
         self._session = session()
         self.base_url = "https://api.monday.com/v2"
 
+
         config_request_timeout = config.get("request_timeout")
         self.request_timeout = float(config_request_timeout) if config_request_timeout else REQUEST_TIMEOUT
 
