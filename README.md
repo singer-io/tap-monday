@@ -53,97 +53,97 @@ This tap:
 ## Streams
 
 
-** [account](https://developer.monday.com/api-reference/reference/account#queries)**
+**[account](https://developer.monday.com/api-reference/reference/account#queries)**
 - Data Key = data.account
 - Primary keys: ['id']
 - Replication strategy: FULL_TABLE
 
-** [assets](https://developer.monday.com/api-reference/reference/assets-1#queries)**
+**[assets](https://developer.monday.com/api-reference/reference/assets-1#queries)**
 - Data Key = assets
 - Primary keys: ['id']
 - Replication strategy: FULL_TABLE
 
-** [audit_event_catalogue](https://developer.monday.com/api-reference/reference/audit-event-catalogue#queries)**
+**[audit_event_catalogue](https://developer.monday.com/api-reference/reference/audit-event-catalogue#queries)**
 - Data Key = data.audit_event_catalogue
 - Primary keys: ['name']
 - Replication strategy: FULL_TABLE
 
-** [boards](https://developer.monday.com/api-reference/reference/boards#queries)**
+**[boards](https://developer.monday.com/api-reference/reference/boards#queries)**
 - Data Key = data.boards
 - Primary keys: ['id']
 - Replication strategy: INCREMENTAL
 
-** [board_activity_logs](https://developer.monday.com/api-reference/reference/activity-logs#queries)**
+**[board_activity_logs](https://developer.monday.com/api-reference/reference/activity-logs#queries)**
 - Data Key = activity_logs
 - Primary keys: ['id']
 - Replication strategy: INCREMENTAL
 
-** [board_columns](https://developer.monday.com/api-reference/reference/columns#queries)**
+**[board_columns](https://developer.monday.com/api-reference/reference/columns#queries)**
 - Data Key = columns
 - Primary keys: ['id', 'board_id']
 - Replication strategy: FULL_TABLE
 
-** [board_groups](https://developer.monday.com/api-reference/reference/groups#queries)**
+**[board_groups](https://developer.monday.com/api-reference/reference/groups#queries)**
 - Data Key = groups
 - Primary keys: ['id', 'board_id']
 - Replication strategy: FULL_TABLE
 
-** [board_items](https://developer.monday.com/api-reference/reference/items#queries)**
+**[board_items](https://developer.monday.com/api-reference/reference/items#queries)**
 - Data Key = data.boards.items_page.items
 - Primary keys: ['id']
 - Replication strategy: INCREMENTAL
 
-** [board_views](https://developer.monday.com/api-reference/reference/board-views#queries)**
+**[board_views](https://developer.monday.com/api-reference/reference/board-views#queries)**
 - Data Key = data.boards.views
 - Primary keys: ['id']
 - Replication strategy: FULL_TABLE
 
-** [column_values](https://developer.monday.com/api-reference/reference/column-values-v2#queries)**
+**[column_values](https://developer.monday.com/api-reference/reference/column-values-v2#queries)**
 - Data Key = column_values
 - Primary keys: ['id', 'item_id']
 - Replication strategy: FULL_TABLE
 
-** [docs](https://developer.monday.com/api-reference/reference/docs#queries)**
+**[docs](https://developer.monday.com/api-reference/reference/docs#queries)**
 - Data Key = data.docs
 - Primary keys: ['id']
 - Replication strategy: FULL_TABLE
 
-** [folders](https://developer.monday.com/api-reference/reference/folders#queries)**
+**[folders](https://developer.monday.com/api-reference/reference/folders#queries)**
 - Data Key = data.folders
 - Primary keys: ['id']
 - Replication strategy: FULL_TABLE
 
-** [platform_api](https://developer.monday.com/api-reference/reference/platform-api#queries)**
+**[platform_api](https://developer.monday.com/api-reference/reference/platform-api#queries)**
 - Data Key = data.platform_api
 - Primary keys: ['daily_analytics.last_update']
 - Replication strategy: INCREMENTAL
 
-** [reply](https://developer.monday.com/api-reference/reference/other-types#reply)**
+**[reply](https://developer.monday.com/api-reference/reference/other-types#reply)**
 - Data Key = reply
 - Primary keys: ['id']
 - Replication strategy: INCREMENTAL
 
-** [tags](https://developer.monday.com/api-reference/reference/tags-1#queries)**
+**[tags](https://developer.monday.com/api-reference/reference/tags-1#queries)**
 - Data Key = data.tags
 - Primary keys: ['id']
 - Replication strategy: FULL_TABLE
 
-** [teams](https://developer.monday.com/api-reference/reference/teams#queries)**
+**[teams](https://developer.monday.com/api-reference/reference/teams#queries)**
 - Data Key = data.teams
 - Primary keys: ['id']
 - Replication strategy: FULL_TABLE
 
-** [updates](https://developer.monday.com/api-reference/reference/updates#queries)**
+**[updates](https://developer.monday.com/api-reference/reference/updates#queries)**
 - Data Key = data.updates
 - Primary keys: ['id']
 - Replication strategy: INCREMENTAL
 
-** [users](https://developer.monday.com/api-reference/reference/users#queries)**
+**[users](https://developer.monday.com/api-reference/reference/users#queries)**
 - Data Key = data.users
 - Primary keys: ['id']
 - Replication strategy: FULL_TABLE
 
-** [workspaces](https://developer.monday.com/api-reference/reference/workspaces#queries)**
+**[workspaces](https://developer.monday.com/api-reference/reference/workspaces#queries)**
 - Data Key = data.workspaces
 - Primary keys: ['id']
 - Replication strategy: FULL_TABLE
