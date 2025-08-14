@@ -47,6 +47,8 @@ class BoardActivityLogs(IncrementalStream):
         After that Transformer object take care of 13 digit UNIX time in milliseconds.
         """
         record = super().modify_object(record, parent_record)
+        # The 17-digit created_at timestamp should be divided by 10000 to convert it to a
+        # standard 13-digit UNIX time in milliseconds.
         record["created_at"] = int(record["created_at"])//10000
         record["board_id"] = parent_record.get("id")
         return record

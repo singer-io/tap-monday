@@ -204,6 +204,9 @@ class BaseStream(ABC):
         Generate a GraphQL query string from JSON schema, including extra fields.
         Supports injecting extra fields even when paths are not in the schema.
 
+        If the root_field has nested query items, the closing brackets(}) are added later
+        during query construction.
+
         Args:
             root_field (str): Root field String.
             indent (int): Indentation spaces.
@@ -383,4 +386,47 @@ class FullTableStream(BaseStream):
                     child.sync(state=state, transformer=transformer, parent_obj=record)
 
             return counter.value, state
+
+
+class ParentChildBookmarkMixin:
+    def get_bookmark(self, state: Dict, stream: str, key: Any = None) -> int:
+        """
+        Get the minimum bookmark value among the parent and its incremental children,
+        excluding full-table replication children.
+        """
+        min_parent_bookmark = super().get_bookmark(state, stream) if self.is_selected() else ""
+
+        for child in self.child_to_sync:
+            if not child.is_selected():
+                continue
+            if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
+                continue
+
+            bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
+            child_bookmark = super().get_bookmark(state, child.tap_stream_id, key=bookmark_key)
+
+            if min_parent_bookmark:
+                min_parent_bookmark = min(min_parent_bookmark, child_bookmark)
+            else:
+                min_parent_bookmark = child_bookmark
+
+        return min_parent_bookmark
+
+    def write_bookmark(self, state: Dict, stream: str, key: Any = None, value: Any = None) -> Dict:
+        """
+        Write the bookmark value to the parent and all incremental children.
+        """
+        if self.is_selected():
+            super().write_bookmark(state, stream, value=value)
+
+        for child in self.child_to_sync:
+            if not child.is_selected():
+                continue
+            if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
+                continue
+
+            bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
+            super().write_bookmark(state, child.tap_stream_id, key=bookmark_key, value=value)
+
+        return state
 
