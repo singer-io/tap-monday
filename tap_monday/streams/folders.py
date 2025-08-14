@@ -26,5 +26,9 @@ class Folders(FullTableStream):
         page = kwargs.get("page", 1)
         root_field = self.root_field.format(limit=self.page_size, page=page)
         graphql_query = self.get_graphql_query(root_field)
-        super().update_data_payload(graphql_query=graphql_query, parent_obj=parent_obj, **kwargs)
+        super().update_data_payload(
+            graphql_query=graphql_query,
+            parent_obj=parent_obj,
+            **kwargs
+        )
 

@@ -3,7 +3,8 @@
     "required_config_keys": [
         "api_token",
         "start_date",
-        "user_agent"
+        "user_agent",
+        "api_version"
     ],
     "page_size": 100,
     "next_page_key": "page",
@@ -130,7 +131,7 @@
         {
             "name": "column_values",
             "key_properties": [
-                "id", "item_id"
+                "id", "item_id", "board_id"
             ],
             "replication_method": "FULL_TABLE",
             "replication_keys": null,
@@ -178,7 +179,7 @@
         {
             "name": "reply",
             "key_properties": [
-                "id"
+                "id", "update_id"
             ],
             "replication_method": "INCREMENTAL",
             "replication_keys": ["updated_at"],

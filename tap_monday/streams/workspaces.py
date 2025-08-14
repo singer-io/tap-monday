@@ -12,7 +12,7 @@ class Workspaces(FullTableStream):
     replication_keys = []
     data_key = "data.workspaces"
     root_field = "workspaces(limit:{limit}, page:{page})"
-    page_size = 500
+    page_size = 200
     pagination_supported = True
 
     def update_data_payload(self, graphql_query: str = None, parent_obj: Dict = None, **kwargs) -> None:
@@ -22,5 +22,9 @@ class Workspaces(FullTableStream):
         page = kwargs.get("page", 1)
         root_field = self.root_field.format(limit=self.page_size, page=page)
         graphql_query = self.get_graphql_query(root_field)
-        super().update_data_payload(graphql_query=graphql_query, parent_obj=parent_obj, **kwargs)
+        super().update_data_payload(
+            graphql_query=graphql_query,
+            parent_obj=parent_obj,
+            **kwargs
+        )
 

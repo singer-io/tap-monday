@@ -15,7 +15,7 @@ class BoardItems(IncrementalStream):
     bookmark_value = None
     children = ["column_values"]
     object_to_id = {"creator": "creator", "group": "group", "parent_item": "parent_item"}
-    page_size = 10
+    page_size = 20
     pagination_supported = True
     root_field = "boards (ids: {ids}) {{ items_page(limit: {limit}) {{cursor items "
     root_field_pagination_query = """next_items_page(limit: {limit}, cursor: "{cursor}") {{cursor items """
@@ -42,10 +42,14 @@ class BoardItems(IncrementalStream):
             super().write_bookmark(state, stream, value=value)
 
         for child in self.child_to_sync:
-            if child.is_selected():
-                bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
-                super().write_bookmark(state, child.tap_stream_id, key=bookmark_key, value=value)
+            if not child.is_selected():
+                continue
 
+            if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
+                continue  # Skip full_table children
+
+            bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
+            super().write_bookmark(state, child.tap_stream_id, key=bookmark_key, value=value)
         return state
 
     def update_data_payload(self, graphql_query: str = None, parent_obj: Dict = None, **kwargs) -> None:
@@ -56,6 +60,8 @@ class BoardItems(IncrementalStream):
             root_field = self.root_field_pagination_query.format(limit=self.page_size, cursor=self.cursor)
             graphql_query = self.get_graphql_query(root_field) + "}"
         else:
+            if not parent_obj or 'id' not in parent_obj:
+                raise ValueError(f"{self.tap_stream_id} - parent_obj must be provided with an 'id' key.")
             root_field = self.root_field.format(ids=parent_obj["id"], limit=self.page_size)
             graphql_query = self.get_graphql_query(root_field) + "}}"
         super().update_data_payload(graphql_query=graphql_query, parent_obj=parent_obj, **kwargs)
@@ -78,10 +84,9 @@ class BoardItems(IncrementalStream):
 
     def update_pagination_key(self, raw_records, parent_record, next_page):
         """Updates the pagination key for fetching the next page of results."""
-        is_next_page = True
         if not self.pagination_supported or not self.cursor:
-            return False, next_page
+            return None
         next_page += 1
         self.update_data_payload(self._graphql_query, parent_record)
-        return is_next_page, next_page
+        return next_page
 

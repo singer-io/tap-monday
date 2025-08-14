@@ -105,6 +105,7 @@ class BaseStream(ABC):
 
     def get_records(self, parent_record: Dict = None) -> Iterator:
         """Interacts with api client interaction and pagination."""
+        # self.params["page"] = self.page_size
         next_page = 1
         while next_page:
             response = self.client.make_request(
@@ -115,9 +116,7 @@ class BaseStream(ABC):
             yield from raw_records
 
             # Move to the next page
-            is_next_page, next_page = self.update_pagination_key(raw_records, parent_record, next_page)
-            if not is_next_page:
-                break
+            next_page = self.update_pagination_key(raw_records, parent_record, next_page)
 
     def write_schema(self) -> None:
         """
@@ -192,19 +191,21 @@ class BaseStream(ABC):
 
     def update_pagination_key(self, raw_records, parent_record, next_page):
         """Updates the pagination key for fetching the next page of results."""
-        is_next_page = True
         if not self.pagination_supported:
-            return False, next_page
+            return None
         if not raw_records or len(raw_records) < self.page_size:
-            return False, next_page
+            return None
         next_page += 1
         self.update_data_payload(self._graphql_query, parent_record, page=next_page)
-        return is_next_page, next_page
+        return next_page
 
     def get_graphql_query(self, root_field: str, indent: int = 1, level: int = 1) -> str:
         """
         Generate a GraphQL query string from JSON schema, including extra fields.
         Supports injecting extra fields even when paths are not in the schema.
+
+        If the root_field has nested query items, the closing brackets(}) needs to be added later
+        during query construction.
 
         Args:
             root_field (str): Root field String.
@@ -385,4 +386,50 @@ class FullTableStream(BaseStream):
                     child.sync(state=state, transformer=transformer, parent_obj=record)
 
             return counter.value, state
+
+
+class ParentChildBookmarkMixin:
+    """
+    Mixin to extend bookmark handling for streams with child streams.
+    """
+    def get_bookmark(self, state: Dict, stream: str, key: Any = None) -> int:
+        """
+        Get the minimum bookmark value among the parent and its incremental children,
+        excluding full-table replication children.
+        """
+        min_parent_bookmark = super().get_bookmark(state, stream) if self.is_selected() else ""
+
+        for child in self.child_to_sync:
+            if not child.is_selected():
+                continue
+            if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
+                continue
+
+            bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
+            child_bookmark = super().get_bookmark(state, child.tap_stream_id, key=bookmark_key)
+
+            if min_parent_bookmark:
+                min_parent_bookmark = min(min_parent_bookmark, child_bookmark)
+            else:
+                min_parent_bookmark = child_bookmark
+
+        return min_parent_bookmark
+
+    def write_bookmark(self, state: Dict, stream: str, key: Any = None, value: Any = None) -> Dict:
+        """
+        Write the bookmark value to the parent and all incremental children.
+        """
+        if self.is_selected():
+            super().write_bookmark(state, stream, value=value)
+
+        for child in self.child_to_sync:
+            if not child.is_selected():
+                continue
+            if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
+                continue
+
+            bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
+            super().write_bookmark(state, child.tap_stream_id, key=bookmark_key, value=value)
+
+        return state
 
