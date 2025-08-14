@@ -127,7 +127,6 @@ class Client:
             Timeout,
             MondayRateLimitError,
             MondayInternalServerError,
-            MondayBadGatewayError,
             MondayServiceUnavailableError
         ),
         max_tries=5
