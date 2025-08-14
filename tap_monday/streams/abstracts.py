@@ -389,6 +389,9 @@ class FullTableStream(BaseStream):
 
 
 class ParentChildBookmarkMixin:
+    """
+    Mixin to extend bookmark handling for streams with child streams.
+    """
     def get_bookmark(self, state: Dict, stream: str, key: Any = None) -> int:
         """
         Get the minimum bookmark value among the parent and its incremental children,
