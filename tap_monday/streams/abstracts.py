@@ -204,7 +204,7 @@ class BaseStream(ABC):
         Generate a GraphQL query string from JSON schema, including extra fields.
         Supports injecting extra fields even when paths are not in the schema.
 
-        If the root_field has nested query items, the closing brackets(}) are added later
+        If the root_field has nested query items, the closing brackets(}) needs to be added later
         during query construction.
 
         Args:
