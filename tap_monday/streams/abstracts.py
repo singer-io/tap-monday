@@ -105,7 +105,6 @@ class BaseStream(ABC):
 
     def get_records(self, parent_record: Dict = None) -> Iterator:
         """Interacts with api client interaction and pagination."""
-        # self.params["page"] = self.page_size
         next_page = 1
         while next_page:
             response = self.client.make_request(
@@ -115,7 +114,6 @@ class BaseStream(ABC):
             raw_records = self.parse_raw_records(raw_records)
             yield from raw_records
 
-            # Move to the next page
             next_page = self.update_pagination_key(raw_records, parent_record, next_page)
 
     def write_schema(self) -> None:
