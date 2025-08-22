@@ -5,6 +5,7 @@ from singer import Transformer
 
 
 class DummyIncrementalStream(IncrementalStream):
+    """A dummy implementation of a Incremental stream for testing."""
     tap_stream_id = "dummy_stream"
     replication_method = "INCREMENTAL"
     replication_keys = ["updated_at"]
@@ -18,6 +19,7 @@ class DummyIncrementalStream(IncrementalStream):
 
 
 class DummyFullTableStream(FullTableStream):
+    """A dummy implementation of a full-table stream for testing."""
     tap_stream_id = "full_table"
     replication_method = "FULL_TABLE"
     replication_keys = []
@@ -37,6 +39,9 @@ class DummyFullTableStream(FullTableStream):
 @patch("tap_monday.streams.abstracts.metrics.record_counter")
 def test_stream_sync(mock_counter, mock_get_bookmark, mock_write_bookmark, mock_write_record,
                      stream_class, expected_bookmark_key):
+    """
+    Test the sync method of both incremental and full-table stream classes.
+    """
     mock_transformer = MagicMock(spec=Transformer)
     mock_transformer.transform.side_effect = lambda r, s, m: r
 
@@ -79,6 +84,7 @@ def test_stream_sync(mock_counter, mock_get_bookmark, mock_write_bookmark, mock_
 
     result, new_state = stream.sync(state, mock_transformer)
     assert result == increment_side_effect.call_count
+    assert mock_transformer.transform.call_count > 0
 
     if expected_bookmark_key:
         mock_write_bookmark.assert_called_with(

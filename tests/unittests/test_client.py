@@ -9,6 +9,7 @@ from tap_monday.exceptions import (
 
 
 class MockResponse:
+    """Class to mock response object"""
     def __init__(self, status_code=200, json_data=None, headers=None):
         self.status_code = status_code
         self._json_data = json_data or {}
@@ -39,6 +40,7 @@ class MockResponse:
     ],
 )
 def test_raise_for_error(status_code, error_json, expected_exception):
+    """Raise execption on the bases of status code"""
     response = MockResponse(status_code=status_code, json_data=error_json)
     with pytest.raises(expected_exception):
         raise_for_error(response)
@@ -48,7 +50,13 @@ def test_raise_for_error(status_code, error_json, expected_exception):
     "side_effects, expected_result, expected_exception",
     [
         # Success on first try
-        ([MockResponse(200, {"data": {"result": "ok"}})], {"data": {"result": "ok"}}, None),
+        (
+            [
+                MockResponse(200, {"data": {"result": "ok"}})
+            ],
+            {"data": {"result": "ok"}},
+            None
+        ),
         # Retry on rate limit, then success
         (
             [
@@ -68,7 +76,9 @@ def test_raise_for_error(status_code, error_json, expected_exception):
         ),
         # Unauthorized (401) response (authorization error)
         (
-            [MockResponse(401, {"errors": [{"message": "Unauthorized Errpr", "extensions": {"code": "Uauthorized Request"}}]})],
+            [
+                MockResponse(401, {"errors": [{"message": "Unauthorized Errpr", "extensions": {"code": "Uauthorized Request"}}]})
+            ],
             None,
             ERROR_CODE_EXCEPTION_MAPPING.get(401).get("raise_exception", MondayError)
         ),
@@ -86,13 +96,17 @@ def test_raise_for_error(status_code, error_json, expected_exception):
         ),
         # Internal server error (500)
         (
-            [MockResponse(500, {"errors": [{"message": "Internal Server Error", "extensions": {"code": "INTERNAL_SERVER_ERROR"}}]})] * 5,
+            [
+                MockResponse(500,{"errors": [{"message": "Internal Server Error","extensions": {"code": "INTERNAL_SERVER_ERROR"}}]})
+            ] * 5,
             None,
             ERROR_CODE_EXCEPTION_MAPPING.get(500).get("raise_exception", MondayError)
         )
     ]
 )
 def test_client_make_request(side_effects, expected_result, expected_exception):
+    """Test the client's request-making behavior under various simulated conditions."""
+
     config = {
         "api_token": "dummy_token",
         "start_date": "2019-01-01T00:00:00Z",
