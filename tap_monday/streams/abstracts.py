@@ -197,12 +197,112 @@ class BaseStream(ABC):
         self.update_data_payload(self._graphql_query, parent_record, page=next_page)
         return next_page
 
+    def _is_object(self, schema: dict) -> bool:
+        """
+        Determine if the given schema represents a JSON object.
+        """
+        type_ = schema.get("type", [])
+        return "object" in ([type_] if isinstance(type_, str) else type_)
+
+    def _is_array_of_objects(self, schema: dict) -> bool:
+        """
+        Determine if the given schema represents an array of objects.
+        """
+        type_ = schema.get("type", [])
+        if "array" in ([type_] if isinstance(type_, str) else type_):
+            items = schema.get("items", {})
+            return self._is_object(items)
+        return False
+
+    def _collect_extra_tree(self, extra_fields: dict) -> dict:
+        """
+        Convert a flat dictionary of dotted-path extra fields into a nested tree structure.
+        """
+        tree = {}
+        for path, fields in extra_fields.items():
+            parts = path.split(".")
+            node = tree
+            for part in parts:
+                node = node.setdefault(part, {})
+            node["_extras"] = fields
+        return tree
+
+    def _process_properties(
+    self,
+    properties: dict,
+    depth: int,
+    parent_path: str = "",
+    extras_branch: dict = None,
+    indent: int = 1
+    ) -> str:
+        """
+        Recursively constructs a GraphQL query string based on the JSON schema properties and any extra fields.
+        This function handles nested objects, arrays of objects, and merges extra fields.
+        """
+        lines = []
+        prefix = " " * (indent * depth)
+
+        schema_keys = set(properties.keys() if properties else [])
+        extra_keys = set(extras_branch.keys()) if extras_branch else set()
+        all_keys = sorted(schema_keys | extra_keys - {"_extras"})
+
+        all_keys = [
+            key for key in all_keys
+            if ((f"{parent_path}.{key}") if parent_path else key) not in self.excluded_fields
+        ]
+
+        for key in all_keys:
+            full_path = f"{parent_path}.{key}" if parent_path else key
+            prop = properties.get(key, {}) if properties else {}
+            child_extras = extras_branch.get(key, {}) if extras_branch else {}
+
+            if self._is_object(prop):
+                nested = self._process_properties(
+                    prop.get("properties", {}),
+                    depth,
+                    full_path,
+                    extras_branch=child_extras,
+                    indent=indent
+                )
+                lines.append(f"{prefix}{key} {{{nested}{prefix}}}")
+
+            elif self._is_array_of_objects(prop):
+                nested = self._process_properties(
+                    prop.get("items", {}).get("properties", {}),
+                    depth,
+                    full_path,
+                    extras_branch=child_extras,
+                    indent=indent
+                )
+                lines.append(f"{prefix}{key} {{{nested}{prefix}}}")
+
+            elif child_extras:
+                nested_schema = {}
+                nested = self._process_properties(
+                    nested_schema,
+                    depth,
+                    full_path,
+                    extras_branch=child_extras,
+                    indent=indent
+                )
+                if child_extras and "_extras" in child_extras:
+                    for extra in child_extras["_extras"]:
+                        nested += " " * (indent * (depth)) + extra
+                if nested.strip():
+                    lines.append(f"{prefix}{key} {{{nested}{prefix}}}")
+                else:
+                    lines.append(f"{prefix}{key}")
+            else:
+                lines.append(f"{prefix}{key}")
+
+        return "".join(lines)
+
     def get_graphql_query(self, root_field: str, indent: int = 1, level: int = 1) -> str:
         """
         Generate a GraphQL query string from JSON schema, including extra fields.
         Supports injecting extra fields even when paths are not in the schema.
 
-        If the root_field has nested query items, the closing brackets(}) needs to be added later
+        If the root_field has nested query items, the closing brackets (}) needs to be added later
         during query construction.
 
         Args:
@@ -216,83 +316,15 @@ class BaseStream(ABC):
         extra_fields = self.extra_fields or {}
         schema_properties = self.schema.get("properties", {})
 
-        def is_object(schema):
-            type = schema.get("type", [])
-            return "object" in ([type] if isinstance(type, str) else type)
-
-        def is_array_of_objects(schema):
-            type = schema.get("type", [])
-            if "array" in ([type] if isinstance(type, str) else type):
-                items = schema.get("items", {})
-                return is_object(items)
-            return False
-
-        def collect_extra_tree():
-            tree = {}
-            for path, fields in extra_fields.items():
-                parts = path.split(".")
-                node = tree
-                for part in parts:
-                    node = node.setdefault(part, {})
-                node["_extras"] = fields
-            return tree
-
-        def process_properties(properties, depth, parent_path="", extras_branch=None):
-            lines = []
-            prefix = " " * (indent * depth)
-            # Merge keys from schema and extra tree
-            schema_keys = set(properties.keys() if properties else [])
-            extra_keys = set(extras_branch.keys()) if extras_branch else set()
-            all_keys = sorted(schema_keys | extra_keys - {"_extras"})
-            all_keys = all_keys = [key for key in all_keys if ((f"{parent_path}.{key}") if parent_path else key) not in self.excluded_fields]
-
-            for key in all_keys:
-                full_path = f"{parent_path}.{key}" if parent_path else key
-                prop = properties.get(key, {}) if properties else {}
-                child_extras = extras_branch.get(key, {}) if extras_branch else {}
-
-                if is_object(prop):
-                    nested = process_properties(
-                        prop.get("properties", {}),
-                        depth,
-                        full_path,
-                        extras_branch=child_extras
-                    )
-                    lines.append(f"{prefix}{key} {{{nested}{prefix}}}")
-                elif is_array_of_objects(prop):
-                    nested = process_properties(
-                        prop.get("items", {}).get("properties", {}),
-                        depth,
-                        full_path,
-                        extras_branch=child_extras
-                    )
-                    lines.append(f"{prefix}{key} {{{nested}{prefix}}}")
-                elif child_extras:
-                    nested_schema = {}
-                    nested = process_properties(
-                        nested_schema,
-                        depth,
-                        full_path,
-                        extras_branch=child_extras
-                    )
-                    if child_extras and "_extras" in child_extras:
-                        for extra in child_extras["_extras"]:
-                            nested += " " * (indent * (depth)) + extra
-                        if nested.strip():
-                            lines.append(f"{prefix}{key} {{{nested}{prefix}}}")
-                        else:
-                            lines.append(f"{prefix}{key}")
-                else:
-                    lines.append(f"{prefix}{key}")
-            return "".join(lines)
-
-        extra_tree = collect_extra_tree()
-        inner_body = process_properties(
+        extra_tree = self._collect_extra_tree(extra_fields)
+        inner_body = self._process_properties(
             schema_properties,
             depth=level,
             parent_path="",
-            extras_branch=extra_tree
+            extras_branch=extra_tree,
+            indent=indent
         )
+
         if root_field:
             outer_indent = " " * indent * level
             inner_body = f"{outer_indent}{root_field} {{{inner_body}{outer_indent}}}"
