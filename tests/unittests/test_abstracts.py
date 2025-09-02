@@ -11,7 +11,7 @@ from tap_monday.exceptions import (
 
 
 class DummyIncrementalStream(IncrementalStream):
-    """A dummy implementation of a Incremental stream for testing."""
+    """A dummy implementation of an Incremental stream for testing."""
     tap_stream_id = "dummy_stream"
     replication_method = "INCREMENTAL"
     replication_keys = ["updated_at"]
@@ -36,7 +36,7 @@ class DummyFullTableStream(FullTableStream):
 
 
 class DummyPaginationStream(FullTableStream):
-    """A dummy implementation of a Incremental stream for testing."""
+    """A dummy implementation of a full-table stream for testing."""
     tap_stream_id = "dummy_stream"
     replication_method = "FULL_TABLE"
     replication_keys = []
@@ -115,7 +115,7 @@ class TestStreamSync(unittest.TestCase):
             )
             self.assertIn(stream.tap_stream_id, new_state)
         else:
-            mock_write_record.assert_not_called()
+            mock_write_bookmark.assert_not_called()
 
 
 class TestPagination(unittest.TestCase):
@@ -147,7 +147,7 @@ class TestPagination(unittest.TestCase):
         mock_catalog = MagicMock()
         mock_catalog.schema.to_dict.return_value = {
             "properties": {
-                "id": {"type": "string"}
+                "id": {"type": ["null", "string"]}
             }
         }
 
