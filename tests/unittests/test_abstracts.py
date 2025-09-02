@@ -36,7 +36,7 @@ class DummyFullTableStream(FullTableStream):
 
 
 class DummyPaginationStream(FullTableStream):
-    """A dummy implementation of a full-table stream for testing."""
+    """A dummy implementation for testing pagination functionality."""
     tap_stream_id = "dummy_stream"
     replication_method = "FULL_TABLE"
     replication_keys = []
