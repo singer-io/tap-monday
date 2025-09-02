@@ -1,6 +1,8 @@
-import pytest
+import unittest
+from parameterized import parameterized
 from unittest.mock import patch
 from requests import Timeout, ConnectionError
+
 from tap_monday.client import Client, raise_for_error
 from tap_monday.exceptions import (
     ERROR_CODE_EXCEPTION_MAPPING,
@@ -19,107 +21,113 @@ class MockResponse:
         return self._json_data
 
 
-@pytest.mark.parametrize(
-    "status_code, error_json, expected_exception",
-    [
-        pytest.param(
+class TestRaiseForError(unittest.TestCase):
+    @parameterized.expand([
+        (
+            "Rate Limit 429",
             429,
             {"errors": [{"message": "Rate limit", "extensions": {"code": "RATE_LIMIT"}}]},
-            ERROR_CODE_EXCEPTION_MAPPING.get(429).get("raise_exception", MondayError),
-            id="Rate Limit 429"
+            ERROR_CODE_EXCEPTION_MAPPING.get(429).get("raise_exception", MondayError)
         ),
-        pytest.param(
+        (
+            "Internal Server Error 500",
             500,
             {"errors": [{"message": "Internal Server Error", "extensions": {"code": "INTERNAL_SERVER_ERROR"}}]},
-            ERROR_CODE_EXCEPTION_MAPPING.get(500).get("raise_exception", MondayError),
-            id="Internal Server Error 500"
+            ERROR_CODE_EXCEPTION_MAPPING.get(500).get("raise_exception", MondayError)
         ),
-        pytest.param(
+        (
+            "Unauthorized 401",
             401,
             {"errors": [{"message": "Internal Server Error", "extensions": {"code": "INTERNAL_SERVER_ERROR"}}]},
-            ERROR_CODE_EXCEPTION_MAPPING.get(401).get("raise_exception", MondayError),
-            id="Unauthorized 401"
-        )
-    ],
-)
-def test_raise_for_error(status_code, error_json, expected_exception):
-    """Raise execption on the bases of status code"""
-    response = MockResponse(status_code=status_code, json_data=error_json)
-    with pytest.raises(expected_exception):
-        raise_for_error(response)
+            ERROR_CODE_EXCEPTION_MAPPING.get(401).get("raise_exception", MondayError)
+        ),
+    ])
+    def test_raise_for_error(self, name, status_code, error_json, expected_exception):
+        """Test raise_for_error raises the expected exception based on status code."""
+        response = MockResponse(status_code=status_code, json_data=error_json)
+        with self.assertRaises(expected_exception):
+            raise_for_error(response)
 
 
-@pytest.mark.parametrize(
-    "side_effects, expected_result, expected_exception",
-    [
-        pytest.param(
+class TestClientMakeRequest(unittest.TestCase):
+
+    def setUp(self):
+        self.config = {
+            "api_token": "dummy_token",
+            "start_date": "2019-01-01T00:00:00Z",
+            "user_agent": "tap-monday test@test.com",
+            "api_version": "2025-07",
+            "request_timeout": 300
+        }
+        self.client = Client(self.config)
+
+    @parameterized.expand([
+        (
+            "Successful request",
             [MockResponse(200, {"data": {"result": "ok"}})],
             {"data": {"result": "ok"}},
-            None,
-            id="Successful request"
+            None
         ),
-        pytest.param(
+        (
+            "Retry after rate limit then success",
             [
-                MockResponse(429, {"errors": [{"message": "Rate limit", "extensions": {"code": "RATE_LIMIT", "retry_in_seconds": 1}}]}),
-                MockResponse(200, {"data": {"result": "ok"}}),
+                MockResponse(429, {
+                    "errors": [{"message": "Rate limit", "extensions": {"code": "RATE_LIMIT", "retry_in_seconds": 1}}]
+                }),
+                MockResponse(200, {"data": {"result": "ok"}})
             ],
             {"data": {"result": "ok"}},
-            None,
-            id="Retry after rate limit then success"
+            None
         ),
-        pytest.param(
-            [MockResponse(429, {"errors": [{"message": "Rate limit", "extensions": {"code": "RATE_LIMIT", "retry_in_seconds": 1}}]})] * 5,
+        (
+            "Repeated rate limit errors",
+            [MockResponse(429, {
+                "errors": [{"message": "Rate limit", "extensions": {"code": "RATE_LIMIT", "retry_in_seconds": 1}}]
+            })] * 5,
             None,
-            ERROR_CODE_EXCEPTION_MAPPING.get(429).get("raise_exception", MondayError),
-            id="Repeated rate limit errors"
+            ERROR_CODE_EXCEPTION_MAPPING.get(429).get("raise_exception", MondayError)
         ),
-        pytest.param(
-            [MockResponse(401, {"errors": [{"message": "Unauthorized Error", "extensions": {"code": "Unauthorized Request"}}]})],
+        (
+            "Unauthorized error",
+            [MockResponse(401, {
+                "errors": [{"message": "Unauthorized Error", "extensions": {"code": "Unauthorized Request"}}]
+            })],
             None,
-            ERROR_CODE_EXCEPTION_MAPPING.get(401).get("raise_exception", MondayError),
-            id="Unauthorized error"
+            ERROR_CODE_EXCEPTION_MAPPING.get(401).get("raise_exception", MondayError)
         ),
-        pytest.param(
+        (
+            "Repeated timeouts",
             [Timeout("Request timed out")] * 5,
             None,
-            Timeout,
-            id="Repeated timeouts"
+            Timeout
         ),
-        pytest.param(
+        (
+            "Repeated connection errors",
             [ConnectionError("Connection failed")] * 5,
             None,
-            ConnectionError,
-            id="Repeated connection errors"
+            ConnectionError
         ),
-        pytest.param(
-            [MockResponse(500, {"errors": [{"message": "Internal Server Error", "extensions": {"code": "INTERNAL_SERVER_ERROR"}}]})] * 5,
+        (
+            "Repeated internal server errors",
+            [MockResponse(500, {
+                "errors": [{"message": "Internal Server Error", "extensions": {"code": "INTERNAL_SERVER_ERROR"}}]
+            })] * 5,
             None,
-            ERROR_CODE_EXCEPTION_MAPPING.get(500).get("raise_exception", MondayError),
-            id="Repeated internal server errors"
-        )
-    ]
-)
-def test_client_make_request(side_effects, expected_result, expected_exception):
-    """Test the client's request-making behavior under various simulated conditions."""
+            ERROR_CODE_EXCEPTION_MAPPING.get(500).get("raise_exception", MondayError)
+        ),
+    ])
+    def test_client_make_request(self, name, side_effects, expected_result, expected_exception):
+        """Test the client's request-making behavior under various simulated conditions."""
+        with patch("requests.Session.request", side_effect=side_effects) as mock_request, \
+             patch("backoff.expo", return_value=(0 for _ in range(10))), \
+             patch("time.sleep", return_value=None):
 
-    config = {
-        "api_token": "dummy_token",
-        "start_date": "2019-01-01T00:00:00Z",
-        "user_agent": "tap-monday test@test.com",
-        "api_version": "2025-07",
-        "request_timeout": 300
-        }
-    client = Client(config)
+            if expected_exception:
+                with self.assertRaises(expected_exception):
+                    self.client.make_request("POST", "/dummy", body={"query": "query { test }"})
+            else:
+                result = self.client.make_request("POST", "/dummy", body={"query": "query { test }"})
+                self.assertEqual(result, expected_result)
 
-    with patch("requests.Session.request", side_effect=side_effects) as mock_request, \
-         patch("backoff.expo", return_value=(0 for _ in range(10))) as mock_expo, \
-         patch("time.sleep", return_value=None) as mock_sleep:
-        if expected_exception:
-            with pytest.raises(expected_exception):
-                client.make_request("POST", "/dummy", body={"query": "query { test }"})
-        else:
-            result = client.make_request("POST", "/dummy", body={"query": "query { test }"})
-            assert result == expected_result
-
-        assert mock_request.call_count == len(side_effects)
+            self.assertEqual(mock_request.call_count, len(side_effects))
 
