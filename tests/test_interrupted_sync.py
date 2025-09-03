@@ -25,5 +25,5 @@ class MondayInterruptedSyncTest(MondayBaseTest):
                 "platform_api": { "daily_analytics.last_update" : "2020-01-01T00:00:00Z"},
                 "reply": { "updated_at" : "2020-01-01T00:00:00Z"},
                 "updates": { "updated_at" : "2020-01-01T00:00:00Z"}
+            }
         }
-    }
