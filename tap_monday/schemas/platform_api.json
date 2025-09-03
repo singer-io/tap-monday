@@ -1,1 +1,144 @@
-{}
+{
+    "type": "object",
+    "properties": {
+        "daily_limit": {
+            "type": [
+                "null",
+                "object"
+            ],
+            "properties": {
+                "base": {
+                    "type": [
+                        "null",
+                        "integer"
+                    ]
+                },
+                "total": {
+                    "type": [
+                        "null",
+                        "integer"
+                    ]
+                }
+            },
+            "additionalProperties": true
+        },
+        "daily_analytics": {
+            "type": [
+                "null",
+                "object"
+            ],
+            "properties": {
+                "by_day": {
+                    "type": [
+                        "null",
+                        "array"
+                    ],
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "day": {
+                                "type": [
+                                    "null",
+                                    "string"
+                                ]
+                            },
+                            "usage": {
+                                "type": [
+                                    "null",
+                                    "integer"
+                                ]
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                },
+                "by_app": {
+                    "type": [
+                        "null",
+                        "array"
+                    ],
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "app": {
+                                "type": [
+                                    "null",
+                                    "object"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    },
+                                    "name": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    }
+                                }
+                            },
+                            "usage": {
+                                "type": [
+                                    "null",
+                                    "integer"
+                                ]
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                },
+                "by_user": {
+                    "type": [
+                        "null",
+                        "array"
+                    ],
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "user": {
+                                "type": [
+                                    "null",
+                                    "object"
+                                ],
+                                "properties":{
+                                    "id": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    },
+                                    "name": {
+                                        "type": [
+                                            "null",
+                                            "string"
+                                        ]
+                                    }
+                                }
+                            },
+                            "usage": {
+                                "type": [
+                                    "null",
+                                    "integer"
+                                ]
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                }
+            },
+            "additionalProperties": true
+        },
+        "last_updated": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "date-time"
+        }
+    },
+    "additionalProperties": true
+}
+

@@ -16,11 +16,7 @@ setup(name="tap-monday",
         "backoff==2.2.1",
         "parameterized==0.9.0"
       ],
-      extras_require={
-          'dev': [
-              'pylint'
-          ]
-      },
+      extras_require={'dev': ['pylint', 'pytest', 'ipdb']},
       entry_points="""
           [console_scripts]
           tap-monday=tap_monday:main

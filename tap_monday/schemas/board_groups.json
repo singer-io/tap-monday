@@ -1,1 +1,48 @@
-{}
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "board_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "title": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "archived": {
+            "type": [
+                "null",
+                "boolean"
+            ]
+        },
+        "color": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "deleted": {
+            "type": [
+                "null",
+                "boolean"
+            ]
+        },
+        "position": {
+            "type": [
+                "null",
+                "string"
+            ]
+        }
+    }
+}
+

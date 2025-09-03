@@ -1,1 +1,48 @@
-{}
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "board_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "name": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "type": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "settings_str": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "access_level": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "view_specific_data_str": {
+            "type": [
+                "null",
+                "string"
+            ]
+        }
+    }
+}
+
