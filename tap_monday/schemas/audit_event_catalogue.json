@@ -16,9 +16,8 @@
         "metadata_details": {
             "type": [
                 "null",
-                "object"
-            ],
-            "additionalProperties": true
+                "string"
+            ]
         }
     }
 }

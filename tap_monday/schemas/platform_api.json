@@ -127,16 +127,16 @@
                         },
                         "additionalProperties": true
                     }
-                },
-                "last_updated": {
-                    "type": [
-                        "null",
-                        "string"
-                    ],
-                    "format": "date-time"
                 }
             },
             "additionalProperties": true
+        },
+        "last_updated": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "date-time"
         }
     },
     "additionalProperties": true

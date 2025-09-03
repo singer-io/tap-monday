@@ -1,5 +1,6 @@
 import singer
 from typing import Dict
+from singer.transform import UNIX_MILLISECONDS_INTEGER_DATETIME_PARSING
 from tap_monday.streams import STREAMS
 from tap_monday.client import Client
 
@@ -28,7 +29,6 @@ def write_schema(stream, client, streams_to_sync, catalog) -> None:
         child_obj = STREAMS[child](client, catalog.get_stream(child))
         write_schema(child_obj, client, streams_to_sync, catalog)
         if child in streams_to_sync:
-
             stream.child_to_sync.append(child_obj)
 
 
@@ -45,17 +45,13 @@ def sync(client: Client, config: Dict, catalog: singer.Catalog, state) -> None:
     last_stream = singer.get_currently_syncing(state)
     LOGGER.info("last/currently syncing stream: {}".format(last_stream))
 
-    with singer.Transformer() as transformer:
+    with singer.Transformer(integer_datetime_fmt=UNIX_MILLISECONDS_INTEGER_DATETIME_PARSING) as transformer:
         for stream_name in streams_to_sync:
-
             stream = STREAMS[stream_name](client, catalog.get_stream(stream_name))
             if stream.parent:
-
                 if stream.parent not in streams_to_sync:
-
                     streams_to_sync.append(stream.parent)
                 continue
-
 
             write_schema(stream, client, streams_to_sync, catalog)
 

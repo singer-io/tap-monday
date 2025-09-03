@@ -69,12 +69,13 @@
         {
             "name": "board_activity_logs",
             "key_properties": [
-                "id"
+                "id",
+                "board_id"
             ],
             "replication_method": "INCREMENTAL",
             "replication_keys": ["created_at"],
             "path": "",
-            "data_key": "activity_logs",
+            "data_key": "data.boards",
             "parent": "boards",
             "doc_link": "https://developer.monday.com/api-reference/reference/activity-logs#queries"
         },
@@ -86,7 +87,7 @@
             "replication_method": "FULL_TABLE",
             "replication_keys": null,
             "path": "",
-            "data_key": "columns",
+            "data_key": "data.boards",
             "parent": "boards",
             "doc_link": "https://developer.monday.com/api-reference/reference/columns#queries"
         },
@@ -98,7 +99,7 @@
             "replication_method": "FULL_TABLE",
             "replication_keys": null,
             "path": "",
-            "data_key": "groups",
+            "data_key": "data.boards",
             "parent": "boards",
             "doc_link": "https://developer.monday.com/api-reference/reference/groups#queries"
         },
@@ -110,8 +111,8 @@
             "replication_method": "INCREMENTAL",
             "replication_keys": ["updated_at"],
             "path": "",
-            "data_key": "data.boards.items_page.items",
-            "parent": "board",
+            "data_key": "data",
+            "parent": "boards",
             "children": ["column_values"],
             "doc_link": "https://developer.monday.com/api-reference/reference/items#queries"
         },
@@ -123,7 +124,7 @@
             "replication_method": "FULL_TABLE",
             "replication_keys": null,
             "path": "",
-            "data_key": "data.boards.views",
+            "data_key": "data.boards",
             "parent": "boards",
             "doc_link": "https://developer.monday.com/api-reference/reference/board-views#queries"
         },
@@ -135,7 +136,7 @@
             "replication_method": "FULL_TABLE",
             "replication_keys": null,
             "path": "",
-            "data_key": "column_values",
+            "data_key": "data.items",
             "parent": "board_items",
             "doc_link": "https://developer.monday.com/api-reference/reference/column-values-v2#queries"
         },
@@ -166,10 +167,10 @@
         {
             "name": "platform_api",
             "key_properties": [
-                "daily_analytics.last_update"
+                "last_updated"
             ],
             "replication_method": "INCREMENTAL",
-            "replication_keys": ["daily_analytics.last_update"],
+            "replication_keys": ["last_updated"],
             "path": "",
             "data_key": "data.platform_api",
             "parent": "",

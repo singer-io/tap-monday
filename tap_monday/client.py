@@ -1,4 +1,5 @@
 from typing import Any, Dict, Mapping, Optional, Tuple
+import time
 
 import backoff
 import requests
@@ -6,7 +7,12 @@ from requests import session
 from requests.exceptions import Timeout, ConnectionError, ChunkedEncodingError
 from singer import get_logger, metrics
 
-from tap_monday.exceptions import ERROR_CODE_EXCEPTION_MAPPING, MondayError, MondayBackoffError
+from tap_monday.exceptions import (
+    ERROR_CODE_EXCEPTION_MAPPING,
+    MondayError,
+    MondayRateLimitError,
+    MondayInternalServerError,
+    MondayServiceUnavailableError)
 
 LOGGER = get_logger()
 REQUEST_TIMEOUT = 300
@@ -22,9 +28,15 @@ def raise_for_error(response: requests.Response) -> None:
         response_json = response.json()
     except Exception:
         response_json = {}
-    if response.status_code != [200, 201, 204]:
-        if response_json.get("error"):
-            message = "HTTP-error-code: {}, Error: {}".format(response.status_code, response_json.get("error"))
+    if response.status_code not in [200, 201, 204] or "errors" in response_json:
+        if response_json.get("errors"):
+            error = "Exception occured"
+            error_extension = "Error Code"
+            error_messages = response_json.get("errors", [])
+            if error_messages:
+                error = error_messages[0].get("message")
+                error_extension = error_messages[0].get("extensions", {}).get("code")
+            message = "HTTP-error-code: {}, Error: {}, Error Extensions: {}".format(response.status_code, error, error_extension)
         else:
             message = "HTTP-error-code: {}, Error: {}".format(
                 response.status_code,
@@ -33,6 +45,14 @@ def raise_for_error(response: requests.Response) -> None:
         exc = ERROR_CODE_EXCEPTION_MAPPING.get(
             response.status_code, {}).get("raise_exception", MondayError)
         raise exc(message, response) from None
+
+def wait_if_retry_after(details):
+    """Backoff handler that checks for a 'retry_after' attribute in the exception
+    and sleeps for the specified duration to respect API rate limits.
+    """
+    exc = details['exception']
+    if hasattr(exc, 'retry_after') and exc.retry_after is not None:
+        time.sleep(exc.retry_after)  # Force exact wait
 
 class Client:
     """
@@ -49,19 +69,14 @@ class Client:
         self._session = session()
         self.base_url = "https://api.monday.com/v2"
 
-
         config_request_timeout = config.get("request_timeout")
         self.request_timeout = float(config_request_timeout) if config_request_timeout else REQUEST_TIMEOUT
 
     def __enter__(self):
-        self.check_api_credentials()
         return self
 
     def __exit__(self, exception_type, exception_value, traceback):
         self._session.close()
-
-    def check_api_credentials(self) -> None:
-        pass
 
     @property
     def headers(self) -> Dict[str, str]:
@@ -103,16 +118,18 @@ class Client:
         return self.__make_request(method, endpoint, headers=headers, params=params, data=body, timeout=self.request_timeout)
 
     @backoff.on_exception(
-        wait_gen=backoff.expo,
+        wait_gen=lambda: backoff.expo(factor=2),
+        on_backoff=wait_if_retry_after,
         exception=(
             ConnectionResetError,
             ConnectionError,
             ChunkedEncodingError,
             Timeout,
-            MondayBackoffError
+            MondayRateLimitError,
+            MondayInternalServerError,
+            MondayServiceUnavailableError
         ),
-        max_tries=5,
-        factor=2,
+        max_tries=5
     )
     def __make_request(self, method: str, endpoint: str, **kwargs) -> Optional[Mapping[Any, Any]]:
         """
@@ -128,6 +145,12 @@ class Client:
             Dict,List,None: Returns a `Json Parsed` HTTP Response or None if exception
         """
         with metrics.http_request_timer(endpoint) as timer:
+            method = method.upper()
+            if method not in ("GET", "POST"):
+                raise ValueError(f"Unsupported method: {method}")
+
+            if method == "GET":
+                kwargs.pop("data", None)
             response = self._session.request(method, endpoint, **kwargs)
             raise_for_error(response)
 

@@ -90,9 +90,8 @@
         "communication": {
             "type": [
                 "null",
-                "object"
-            ],
-            "additionalProperties": true
+                "string"
+            ]
         },
         "description": {
             "type": [
