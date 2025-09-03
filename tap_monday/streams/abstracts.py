@@ -25,7 +25,7 @@ class BaseStream(ABC):
      - Helper methods for catalog generation
      - `sync` and `get_records` method for performing sync
     """
-
+    _graphql_query = ""
     url_endpoint = ""
     path = ""
     page_size = 100
