@@ -69,14 +69,14 @@ class MondayBaseTest(BaseCase):
                 cls.API_LIMIT: 100
             },
             "board_columns": {
-                cls.PRIMARY_KEYS: { "id, board_id" },
+                cls.PRIMARY_KEYS: { "id", "board_id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
                 cls.OBEYS_START_DATE: False,
                 cls.API_LIMIT: 100
             },
             "board_groups": {
-                cls.PRIMARY_KEYS: { "id, board_id" },
+                cls.PRIMARY_KEYS: { "id", "board_id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
                 cls.OBEYS_START_DATE: False,
@@ -97,7 +97,7 @@ class MondayBaseTest(BaseCase):
                 cls.API_LIMIT: 100
             },
             "column_values": {
-                cls.PRIMARY_KEYS: { "id, item_id" },
+                cls.PRIMARY_KEYS: { "id", "item_id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
                 cls.OBEYS_START_DATE: False,
