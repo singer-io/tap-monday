@@ -32,7 +32,7 @@
         {
             "name": "assets",
             "key_properties": [
-                "id"
+                "id", "update_id"
             ],
             "replication_method": "FULL_TABLE",
             "replication_keys": null,
@@ -106,7 +106,8 @@
         {
             "name": "board_items",
             "key_properties": [
-                "id"
+                "id",
+                "board_id"
             ],
             "replication_method": "INCREMENTAL",
             "replication_keys": ["updated_at"],
@@ -119,7 +120,8 @@
         {
             "name": "board_views",
             "key_properties": [
-                "id"
+                "id",
+                "board_id"
             ],
             "replication_method": "FULL_TABLE",
             "replication_keys": null,

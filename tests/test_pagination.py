@@ -11,5 +11,6 @@ class MondayPaginationTest(PaginationTest, MondayBaseTest):
         return "tap_tester_monday_pagination_test"
 
     def streams_to_test(self):
-        streams_to_exclude = {}
+        # excluded due to insufficient test data
+        streams_to_exclude = {"account", "platform_api", "teams", "users"}
         return self.expected_stream_names().difference(streams_to_exclude)

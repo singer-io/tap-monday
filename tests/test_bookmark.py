@@ -11,7 +11,7 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
             "boards": { "updated_at" : "2020-01-01T00:00:00Z"},
             "board_activity_logs": { "created_at" : "2020-01-01T00:00:00Z"},
             "board_items": { "updated_at" : "2020-01-01T00:00:00Z"},
-            "platform_api": { "daily_analytics.last_update" : "2020-01-01T00:00:00Z"},
+            # "platform_api": { "last_updated" : "2020-01-01T00:00:00Z"},
             "reply": { "updated_at" : "2020-01-01T00:00:00Z"},
             "updates": { "updated_at" : "2020-01-01T00:00:00Z"},
         }
@@ -21,5 +21,30 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
         return "tap_tester_monday_bookmark_test"
 
     def streams_to_test(self):
-        streams_to_exclude = {}
+        # excluded streams becuase following streams are full_data
+        streams_to_exclude = {
+            "audit_event_catalogue",
+            "column_values",
+            "teams",
+            "workspaces",
+            "tags",
+            "folders",
+            "board_views",
+            "board_groups",
+            "board_columns",
+            "docs",
+            "account",
+            "assets",
+            "users",
+            "platform_api"
+        }
         return self.expected_stream_names().difference(streams_to_exclude)
+
+    def calculate_new_bookmarks(self):
+        """
+        Calculates new bookmarks by looking through sync 1 data to determine a bookmark
+        that will sync 2 records in sync 2 (plus any necessary look back data)
+        """
+        new_bookmarks = super().calculate_new_bookmarks()
+        return {key: {k: v.replace(".000000Z", ".000Z") for k, v in value.items()}
+                for key, value in new_bookmarks.items()}
