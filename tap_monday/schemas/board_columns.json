@@ -1,0 +1,54 @@
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "board_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "title": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "archived": {
+            "type": [
+                "null",
+                "boolean"
+            ]
+        },
+        "description": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "type": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "width": {
+            "type": [
+                "null",
+                "integer"
+            ]
+        },
+        "settings_str": {
+            "type": [
+                "null",
+                "string"
+            ]
+        }
+    }
+}
+

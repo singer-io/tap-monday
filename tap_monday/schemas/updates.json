@@ -1,0 +1,50 @@
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "creator_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "item_id": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "body": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "text_body": {
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        "created_at": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "date-time"
+        },
+        "updated_at": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "date-time"
+        }
+    },
+    "additionalProperties": true
+}

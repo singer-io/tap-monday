@@ -1,0 +1,265 @@
+{
+    "tap_name": "Monday",
+    "required_config_keys": [
+        "api_token",
+        "start_date",
+        "user_agent",
+        "api_version"
+    ],
+    "page_size": 100,
+    "next_page_key": "page",
+    "pagination_key": "page",
+    "headers": {
+        "Accept": "application/json"
+    },
+    "params": {},
+    "auth_header_key": "Authorization",
+    "auth_config_key": "api_token",
+    "base_url": "https://api.monday.com/v2",
+    "streams": [
+        {
+            "name": "account",
+            "key_properties": [
+                "id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.account",
+            "parent": "",
+            "doc_link": "https://developer.monday.com/api-reference/reference/account#queries"
+        },
+        {
+            "name": "assets",
+            "key_properties": [
+                "id", "update_id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "assets",
+            "parent": "updates",
+            "doc_link": "https://developer.monday.com/api-reference/reference/assets-1#queries"
+        },
+        {
+            "name": "audit_event_catalogue",
+            "key_properties": [
+                "name"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.audit_event_catalogue",
+            "parent": "",
+            "doc_link": "https://developer.monday.com/api-reference/reference/audit-event-catalogue#queries"
+        },
+        {
+            "name": "boards",
+            "key_properties": [
+                "id"
+            ],
+            "replication_method": "INCREMENTAL",
+            "replication_keys": ["updated_at"],
+            "path": "",
+            "data_key": "data.boards",
+            "parent": "",
+            "children": ["board_activity_logs", "board_columns", "board_groups", "board_items", "board_views"],
+            "doc_link": "https://developer.monday.com/api-reference/reference/boards#queries"
+        },
+        {
+            "name": "board_activity_logs",
+            "key_properties": [
+                "id",
+                "board_id"
+            ],
+            "replication_method": "INCREMENTAL",
+            "replication_keys": ["created_at"],
+            "path": "",
+            "data_key": "data.boards",
+            "parent": "boards",
+            "doc_link": "https://developer.monday.com/api-reference/reference/activity-logs#queries"
+        },
+        {
+            "name": "board_columns",
+            "key_properties": [
+                "id", "board_id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.boards",
+            "parent": "boards",
+            "doc_link": "https://developer.monday.com/api-reference/reference/columns#queries"
+        },
+        {
+            "name": "board_groups",
+            "key_properties": [
+                "id", "board_id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.boards",
+            "parent": "boards",
+            "doc_link": "https://developer.monday.com/api-reference/reference/groups#queries"
+        },
+        {
+            "name": "board_items",
+            "key_properties": [
+                "id",
+                "board_id"
+            ],
+            "replication_method": "INCREMENTAL",
+            "replication_keys": ["updated_at"],
+            "path": "",
+            "data_key": "data",
+            "parent": "boards",
+            "children": ["column_values"],
+            "doc_link": "https://developer.monday.com/api-reference/reference/items#queries"
+        },
+        {
+            "name": "board_views",
+            "key_properties": [
+                "id",
+                "board_id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.boards",
+            "parent": "boards",
+            "doc_link": "https://developer.monday.com/api-reference/reference/board-views#queries"
+        },
+        {
+            "name": "column_values",
+            "key_properties": [
+                "id", "item_id", "board_id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.items",
+            "parent": "board_items",
+            "doc_link": "https://developer.monday.com/api-reference/reference/column-values-v2#queries"
+        },
+        {
+            "name": "docs",
+            "key_properties": [
+                "id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.docs",
+            "parent": "",
+            "doc_link": "https://developer.monday.com/api-reference/reference/docs#queries"
+        },
+        {
+            "name": "folders",
+            "key_properties": [
+                "id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.folders",
+            "parent": "",
+            "doc_link": "https://developer.monday.com/api-reference/reference/folders#queries"
+        },
+        {
+            "name": "platform_api",
+            "key_properties": [
+                "last_updated"
+            ],
+            "replication_method": "INCREMENTAL",
+            "replication_keys": ["last_updated"],
+            "path": "",
+            "data_key": "data.platform_api",
+            "parent": "",
+            "doc_link": "https://developer.monday.com/api-reference/reference/platform-api#queries"
+        },
+        {
+            "name": "reply",
+            "key_properties": [
+                "id", "update_id"
+            ],
+            "replication_method": "INCREMENTAL",
+            "replication_keys": ["updated_at"],
+            "path": "",
+            "data_key": "reply",
+            "parent": "updates",
+            "doc_link": "https://developer.monday.com/api-reference/reference/other-types#reply"
+        },
+        {
+            "name": "tags",
+            "key_properties": [
+                "id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.tags",
+            "parent": "",
+            "doc_link": "https://developer.monday.com/api-reference/reference/tags-1#queries"
+        },
+        {
+            "name": "teams",
+            "key_properties": [
+                "id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.teams",
+            "parent": "",
+            "doc_link": "https://developer.monday.com/api-reference/reference/teams#queries"
+        },
+        {
+            "name": "updates",
+            "key_properties": [
+                "id"
+            ],
+            "replication_method": "INCREMENTAL",
+            "replication_keys": ["updated_at"],
+            "path": "",
+            "data_key": "data.updates",
+            "parent": "",
+            "children": ["assets", "reply"],
+            "doc_link": "https://developer.monday.com/api-reference/reference/updates#queries"
+        },
+        {
+            "name": "users",
+            "key_properties": [
+                "id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.users",
+            "parent": "",
+            "doc_link": "https://developer.monday.com/api-reference/reference/users#queries"
+        },
+        {
+            "name": "workspaces",
+            "key_properties": [
+                "id"
+            ],
+            "replication_method": "FULL_TABLE",
+            "replication_keys": null,
+            "path": "",
+            "data_key": "data.workspaces",
+            "parent": "",
+            "doc_link": "https://developer.monday.com/api-reference/reference/workspaces#queries"
+        }
+    ],
+    "tap_tester_creds": {
+        "api_token": "TAP_MONDAY_API_TOKEN",
+        "api_version": "TAP_MONDAY_API_VERSION"
+    },
+    "author": "Stitch",
+    "third_party_dependencies": [
+        "singer-python==6.1.1",
+        "requests==2.32.4",
+        "backoff==2.2.1"
+    ]
+}

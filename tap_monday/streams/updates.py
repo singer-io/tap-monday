@@ -1,0 +1,65 @@
+from typing import Dict, Any
+from singer import get_logger
+from tap_monday.streams.abstracts import IncrementalStream, ParentChildBookmarkMixin
+
+LOGGER = get_logger()
+
+
+class Updates(ParentChildBookmarkMixin, IncrementalStream):
+    tap_stream_id = "updates"
+    key_properties = ["id"]
+    replication_method = "INCREMENTAL"
+    replication_keys = ["updated_at"]
+    data_key = "data.updates"
+    children = ["assets", "reply"]
+    root_field = "updates(limit:{limit}, page:{page})"
+    page_size = 100
+    pagination_supported = True
+    common_asset_fields = [
+        "id",
+        "name",
+        "created_at",
+        "file_extension",
+        "file_size",
+        "original_geometry",
+        "public_url",
+        "url",
+        "url_thumbnail"
+    ]
+    extra_fields = {
+        "assets": common_asset_fields,
+        "assets.uploaded_by": ["id"],
+        "replies": [
+            "id",
+            "body",
+            "created_at",
+            "edited_at",
+            "kind",
+            "text_body",
+            "updated_at",
+            "creator_id"
+        ],
+        "replies.assets": common_asset_fields,
+        "replies.assets.uploaded_by": ["id"],
+        "replies.likes": [
+            "id",
+            "creator_id",
+            "reaction_type",
+            "created_at",
+            "updated_at"
+        ],
+        "replies.viewers": [
+            "user_id",
+            "medium"
+        ]
+    }
+
+    def update_data_payload(self, graphql_query: str = None, parent_obj: Dict = None, **kwargs) -> None:
+        """
+        Update JSON body for GraphQL API. Injects query string if provided.
+        """
+        page = kwargs.get("page", 1)
+        root_field = self.root_field.format(limit=self.page_size, page=page)
+        graphql_query = self.get_graphql_query(root_field)
+        super().update_data_payload(graphql_query=graphql_query, parent_obj=parent_obj, **kwargs)
+
