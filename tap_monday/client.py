@@ -81,7 +81,7 @@ class Client:
     @property
     def headers(self) -> Dict[str, str]:
         """
-        Construct and return the HTTP headers required for requests to the Amazon Advertising API.
+        Construct and return the HTTP headers required for the requests.
         """
         header = {
             'Content-Type': 'application/json'
