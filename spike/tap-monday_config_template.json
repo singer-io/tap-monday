@@ -3,8 +3,7 @@
     "required_config_keys": [
         "api_token",
         "start_date",
-        "user_agent",
-        "api_version"
+        "user_agent"
     ],
     "page_size": 100,
     "next_page_key": "page",
@@ -253,8 +252,7 @@
         }
     ],
     "tap_tester_creds": {
-        "api_token": "TAP_MONDAY_API_TOKEN",
-        "api_version": "TAP_MONDAY_API_VERSION"
+        "api_token": "TAP_MONDAY_API_TOKEN"
     },
     "author": "Stitch",
     "third_party_dependencies": [

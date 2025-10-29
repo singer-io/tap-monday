@@ -68,6 +68,7 @@ class Client:
         self.config = config
         self._session = session()
         self.base_url = "https://api.monday.com/v2"
+        self.api_version = "2025-07"
 
         config_request_timeout = config.get("request_timeout")
         self.request_timeout = float(config_request_timeout) if config_request_timeout else REQUEST_TIMEOUT
@@ -86,8 +87,7 @@ class Client:
         header = {
             'Content-Type': 'application/json'
         }
-        if api_version := self.config.get("api_version"):
-            header['API-Version'] = api_version
+        header['API-Version'] = self.api_version
         return header
 
     def authenticate(self, headers: Optional[Dict], params: Optional[Dict]) -> Tuple[Dict, Dict]:
