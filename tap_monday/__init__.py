@@ -7,7 +7,7 @@ from tap_monday.sync import sync
 
 LOGGER = singer.get_logger()
 
-REQUIRED_CONFIG_KEYS = ['api_token', 'start_date', 'user_agent', "api_version"]
+REQUIRED_CONFIG_KEYS = ['api_token', 'start_date', 'user_agent']
 
 def do_discover():
     """

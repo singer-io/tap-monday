@@ -173,8 +173,7 @@ class MondayBaseTest(BaseCase):
         """Authentication information for the test account."""
         credentials_dict = {}
         creds = {
-            'api_token': 'TAP_MONDAY_API_TOKEN',
-            'api_version': 'TAP_MONDAY_API_VERSION'
+            'api_token': 'TAP_MONDAY_API_TOKEN'
         }
 
         for cred in creds:
