@@ -44,7 +44,7 @@
                     ]
                 }
             },
-            "additionalProperties": true
+            "additionalProperties": false
         },
         "value": {
             "type": [
@@ -53,6 +53,6 @@
             ]
         }
     },
-    "additionalProperties": true
+    "additionalProperties": false
 }
 

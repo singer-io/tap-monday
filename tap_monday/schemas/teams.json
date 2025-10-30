@@ -25,7 +25,10 @@
                 "array"
             ],
             "items": {
-                "type": "object",
+                "type": [
+                    "null",
+                    "object"
+                ],
                 "properties": {
                     "id": {
                         "type": [
@@ -40,7 +43,7 @@
                         ]
                     }
                 },
-                "additionalProperties": true
+                "additionalProperties": false
             }
         },
         "users": {
@@ -49,7 +52,10 @@
                 "array"
             ],
             "items": {
-                "type": "object",
+                "type": [
+                    "null",
+                    "object"
+                ],
                 "properties": {
                     "id": {
                         "type": [
@@ -64,9 +70,9 @@
                         ]
                     }
                 },
-                "additionalProperties": true
+                "additionalProperties": false
             }
         }
     },
-    "additionalProperties": true
+    "additionalProperties": false
 }

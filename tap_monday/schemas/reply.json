@@ -25,7 +25,10 @@
                 "array"
             ],
             "items": {
-                "type": "object",
+                "type": [
+                    "null",
+                    "object"
+                ],
                 "properties": {
                     "id": {
                         "type": [
@@ -40,7 +43,7 @@
                         ]
                     }
                 },
-                "additionalProperties": true
+                "additionalProperties": false
             }
         },
         "body": {
@@ -75,7 +78,10 @@
                 "array"
             ],
             "items": {
-                "type": "object",
+                "type": [
+                    "null",
+                    "object"
+                ],
                 "properties": {
                     "id": {
                         "type": [
@@ -110,7 +116,7 @@
                         "format": "date-time"
                     }
                 },
-                "additionalProperties": true
+                "additionalProperties": false
             }
         },
         "text_body": {
@@ -132,7 +138,10 @@
                 "array"
             ],
             "items": {
-                "type": "object",
+                "type": [
+                    "null",
+                    "object"
+                ],
                 "properties": {
                     "user_id": {
                         "type": [
@@ -147,9 +156,9 @@
                         ]
                     }
                 },
-                "additionalProperties": true
+                "additionalProperties": false
             }
         }
     },
-    "additionalProperties": true
+    "additionalProperties": false
 }

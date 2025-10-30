@@ -1,5 +1,6 @@
 {
     "type": "object",
+    "additionalProperties": false,
     "properties": {
         "id": {
             "type": [
@@ -50,7 +51,10 @@
                 "array"
             ],
             "items": {
-                "type": "object",
+                "type": [
+                    "null",
+                    "object"
+                ],
                 "properties": {
                     "id": {
                         "type": [
@@ -65,7 +69,7 @@
                         ]
                     }
                 },
-                "additionalProperties": true
+                "additionalProperties": false
             }
         },
         "children": {
@@ -74,7 +78,10 @@
                 "array"
             ],
             "items": {
-                "type": "object",
+                "type": [
+                    "null",
+                    "object"
+                ],
                 "properties": {
                     "id": {
                         "type": [
@@ -89,7 +96,7 @@
                         ]
                     }
                 },
-                "additionalProperties": true
+                "additionalProperties": false
             }
         }
     }

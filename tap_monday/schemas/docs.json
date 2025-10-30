@@ -37,7 +37,10 @@
                 "array"
             ],
             "items": {
-                "type": "object",
+                "type": [
+                    "null",
+                    "object"
+                ],
                 "properties": {
                     "id": {
                         "type": [
@@ -58,7 +61,7 @@
                         ]
                     }
                 },
-                "additionalProperties": true
+                "additionalProperties": false
             }
         },
         "created_at": {
@@ -99,6 +102,6 @@
             ]
         }
     },
-    "additionalProperties": true
+    "additionalProperties": false
 }
 
