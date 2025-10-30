@@ -1,6 +1,5 @@
 {
     "type": "object",
-    "additionalProperties": false,
     "properties": {
         "id": {
             "type": [
@@ -118,7 +117,6 @@
                 "null",
                 "object"
             ],
-            "additionalProperties": false,
             "properties": {
                 "active": {
                     "type": [
