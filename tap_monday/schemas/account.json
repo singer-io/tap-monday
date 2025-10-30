@@ -1,5 +1,6 @@
 {
     "type": "object",
+    "additionalProperties": false,
     "properties": {
         "id": {
             "type": [
@@ -60,6 +61,7 @@
                 "null",
                 "object"
             ],
+            "additionalProperties": false,
             "properties": {
                 "period": {
                     "type": [
@@ -91,6 +93,7 @@
                     "null",
                     "object"
                 ],
+                "additionalProperties": false,
                 "properties": {
                     "id": {
                         "type": [

@@ -20,7 +20,7 @@
                     ]
                 }
             },
-            "additionalProperties": true
+            "additionalProperties": false
         },
         "daily_analytics": {
             "type": [
@@ -34,7 +34,10 @@
                         "array"
                     ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "null",
+                            "object"
+                        ],
                         "properties": {
                             "day": {
                                 "type": [
@@ -49,7 +52,7 @@
                                 ]
                             }
                         },
-                        "additionalProperties": true
+                        "additionalProperties": false
                     }
                 },
                 "by_app": {
@@ -58,7 +61,10 @@
                         "array"
                     ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "null",
+                            "object"
+                        ],
                         "properties": {
                             "app": {
                                 "type": [
@@ -87,7 +93,7 @@
                                 ]
                             }
                         },
-                        "additionalProperties": true
+                        "additionalProperties": false
                     }
                 },
                 "by_user": {
@@ -96,13 +102,17 @@
                         "array"
                     ],
                     "items": {
-                        "type": "object",
+                        "type": [
+                            "null",
+                            "object"
+                        ],
                         "properties": {
                             "user": {
                                 "type": [
                                     "null",
                                     "object"
                                 ],
+                                "additionalProperties": false,
                                 "properties":{
                                     "id": {
                                         "type": [
@@ -125,11 +135,11 @@
                                 ]
                             }
                         },
-                        "additionalProperties": true
+                        "additionalProperties": false
                     }
                 }
             },
-            "additionalProperties": true
+            "additionalProperties": false
         },
         "last_updated": {
             "type": [
@@ -139,6 +149,6 @@
             "format": "date-time"
         }
     },
-    "additionalProperties": true
+    "additionalProperties": false
 }
 
