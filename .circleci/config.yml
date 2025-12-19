@@ -21,13 +21,11 @@ jobs:
           name: "pylint"
           command: |
             source /usr/local/share/virtualenvs/tap-monday/bin/activate
-            uv pip install pylint
             pylint tap_monday -d C,R,W
       - run:
           name: "Unit Tests"
           command: |
             source /usr/local/share/virtualenvs/tap-monday/bin/activate
-            uv pip install pytest coverage
             coverage run -m pytest tests/unittests
             coverage html
       - store_test_results:
