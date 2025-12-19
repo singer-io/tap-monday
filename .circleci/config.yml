@@ -23,7 +23,6 @@ jobs:
             source /usr/local/share/virtualenvs/tap-monday/bin/activate
             uv pip install pylint
             pylint tap_monday -d C,R,W
-      - add_ssh_keys
       - run:
           name: "Unit Tests"
           command: |
