@@ -47,11 +47,19 @@ def raise_for_error(response: requests.Response) -> None:
         raise exc(message, response) from None
 
 def wait_if_retry_after(details):
-    """Backoff handler that checks for a 'retry_after' attribute in the exception
-    and sleeps for the specified duration to respect API rate limits.
+    """Backoff handler that sleeps for the exact duration specified by the API's retry_after value.
+
+    Monday.com API returns 'retry_in_seconds' in rate limit errors (HTTP 429). Using this custom
+    handler respects the API's explicit guidance instead of exponential backoff, avoiding both
+    premature retries and unnecessary delays.
+
+    Exception lookup logic: The backoff library passes exceptions in details['exception'] or
+    details['args'][0] depending on execution context. We check both locations to ensure we
+    find the exception regardless of how backoff invokes this handler.
     """
     exc = details.get('exception')
     if exc is None:
+        # Backoff sometimes passes exception in args instead of 'exception' key
         args = details.get('args') or ()
         exc = args[0] if args else None
     if exc and hasattr(exc, 'retry_after') and exc.retry_after is not None:
