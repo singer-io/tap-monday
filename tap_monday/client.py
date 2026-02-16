@@ -48,7 +48,7 @@ def raise_for_error(response: requests.Response) -> None:
 
 def wait_if_retry_after(details):
     """Backoff handler that checks for a 'retry_after' attribute in the exception
-        and sleeps for the specified duration to respect API rate limits.
+    and sleeps for the specified duration to respect API rate limits.
     """
     exc = details.get('exception')
     if exc is None:
