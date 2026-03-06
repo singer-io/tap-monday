@@ -1,12 +1,13 @@
 import unittest
 from parameterized import parameterized
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from requests import Timeout, ConnectionError
 
-from tap_monday.client import Client, raise_for_error
+from tap_monday.client import Client, raise_for_error, wait_if_retry_after
 from tap_monday.exceptions import (
     ERROR_CODE_EXCEPTION_MAPPING,
-    MondayError
+    MondayError,
+    MondayRateLimitError
 )
 
 
@@ -130,4 +131,100 @@ class TestClientMakeRequest(unittest.TestCase):
                 self.assertEqual(result, expected_result)
 
             self.assertEqual(mock_request.call_count, len(side_effects))
+
+
+class TestWaitIfRetryAfter(unittest.TestCase):
+    """Test the wait_if_retry_after backoff handler function."""
+
+    @patch('time.sleep')
+    def test_wait_if_retry_after_with_retry_after_attribute(self, mock_sleep):
+        """Test that the handler sleeps for the exact duration from retry_after."""
+        # Create a mock exception with retry_after attribute
+        mock_exception = MagicMock()
+        mock_exception.retry_after = 5
+
+        details = {'exception': mock_exception}
+        wait_if_retry_after(details)
+
+        # Verify it slept for the exact duration
+        mock_sleep.assert_called_once_with(5)
+
+    @patch('time.sleep')
+    def test_wait_if_retry_after_with_none_retry_after(self, mock_sleep):
+        """Test that the handler does not sleep when retry_after is None."""
+        mock_exception = MagicMock()
+        mock_exception.retry_after = None
+
+        details = {'exception': mock_exception}
+        wait_if_retry_after(details)
+
+        # Verify it did not sleep
+        mock_sleep.assert_not_called()
+
+    @patch('time.sleep')
+    def test_wait_if_retry_after_without_retry_after_attribute(self, mock_sleep):
+        """Test that the handler does not sleep when exception has no retry_after attribute."""
+        mock_exception = MagicMock(spec=[])
+
+        details = {'exception': mock_exception}
+        wait_if_retry_after(details)
+
+        # Verify it did not sleep
+        mock_sleep.assert_not_called()
+
+    @patch('time.sleep')
+    def test_wait_if_retry_after_with_exception_in_args(self, mock_sleep):
+        """Test that the handler finds the exception in args[0] when not in 'exception' key."""
+        mock_exception = MagicMock()
+        mock_exception.retry_after = 10
+
+        details = {'args': (mock_exception,)}
+        wait_if_retry_after(details)
+
+        # Verify it slept for the exact duration
+        mock_sleep.assert_called_once_with(10)
+
+    @patch('time.sleep')
+    def test_wait_if_retry_after_with_no_exception(self, mock_sleep):
+        """Test that the handler does not sleep when no exception is present."""
+        details = {}
+        wait_if_retry_after(details)
+
+        # Verify it did not sleep
+        mock_sleep.assert_not_called()
+
+    @patch('time.sleep')
+    def test_wait_if_retry_after_with_real_rate_limit_error(self, mock_sleep):
+        """Test with an actual MondayRateLimitError instance."""
+        # Create a mock response with retry_in_seconds
+        mock_response = MockResponse(
+            status_code=429,
+            json_data={
+                "errors": [{
+                    "message": "Rate limit exceeded",
+                    "extensions": {
+                        "code": "RATE_LIMIT",
+                        "retry_in_seconds": 15
+                    }
+                }]
+            }
+        )
+
+        # Create actual exception with the response
+        exc = MondayRateLimitError(response=mock_response)
+
+        details = {'exception': exc}
+        wait_if_retry_after(details)
+
+        # Verify it slept for the exact duration from the API response
+        mock_sleep.assert_called_once_with(15)
+
+    @patch('time.sleep')
+    def test_wait_if_retry_after_with_empty_args(self, mock_sleep):
+        """Test that the handler handles empty args gracefully."""
+        details = {'args': ()}
+        wait_if_retry_after(details)
+
+        # Verify it did not sleep
+        mock_sleep.assert_not_called()
 

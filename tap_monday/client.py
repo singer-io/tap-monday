@@ -50,8 +50,12 @@ def wait_if_retry_after(details):
     """Backoff handler that checks for a 'retry_after' attribute in the exception
     and sleeps for the specified duration to respect API rate limits.
     """
-    exc = details['exception']
-    if hasattr(exc, 'retry_after') and exc.retry_after is not None:
+    exc = details.get('exception')
+    if exc is None:
+        # Fallback: backoff library may pass exception in args[0] depending on execution context
+        args = details.get('args') or ()
+        exc = args[0] if args else None
+    if exc and hasattr(exc, 'retry_after') and exc.retry_after is not None:
         time.sleep(exc.retry_after)  # Force exact wait
 
 class Client:
