@@ -37,133 +37,133 @@ class MondayBaseTest(BaseCase):
                 cls.PRIMARY_KEYS: { "id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "assets": {
                 cls.PRIMARY_KEYS: { "id", "update_id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "audit_event_catalogue": {
                 cls.PRIMARY_KEYS: { "name" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "boards": {
                 cls.PRIMARY_KEYS: { "id" },
                 cls.REPLICATION_METHOD: cls.INCREMENTAL,
                 cls.REPLICATION_KEYS: { "updated_at" },
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: True,
                 cls.API_LIMIT: 1
             },
             "board_activity_logs": {
                 cls.PRIMARY_KEYS: { "id", "board_id" },
                 cls.REPLICATION_METHOD: cls.INCREMENTAL,
                 cls.REPLICATION_KEYS: { "created_at" },
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: True,
                 cls.API_LIMIT: 1
             },
             "board_columns": {
                 cls.PRIMARY_KEYS: { "id", "board_id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "board_groups": {
                 cls.PRIMARY_KEYS: { "id", "board_id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "board_items": {
                 cls.PRIMARY_KEYS: { "id", "board_id" },
                 cls.REPLICATION_METHOD: cls.INCREMENTAL,
                 cls.REPLICATION_KEYS: { "updated_at" },
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: True,
                 cls.API_LIMIT: 2
             },
             "board_views": {
                 cls.PRIMARY_KEYS: { "id", "board_id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "column_values": {
                 cls.PRIMARY_KEYS: { "id", "item_id", "board_id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "docs": {
                 cls.PRIMARY_KEYS: { "id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "folders": {
                 cls.PRIMARY_KEYS: { "id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "platform_api": {
                 cls.PRIMARY_KEYS: { "last_updated" },
                 cls.REPLICATION_METHOD: cls.INCREMENTAL,
                 cls.REPLICATION_KEYS: { "last_updated" },
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: True,
                 cls.API_LIMIT: 1
             },
             "reply": {
                 cls.PRIMARY_KEYS: { "id", "update_id" },
                 cls.REPLICATION_METHOD: cls.INCREMENTAL,
                 cls.REPLICATION_KEYS: { "updated_at" },
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: True,
                 cls.API_LIMIT: 1
             },
             "tags": {
                 cls.PRIMARY_KEYS: { "id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "teams": {
                 cls.PRIMARY_KEYS: { "id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "updates": {
                 cls.PRIMARY_KEYS: { "id" },
                 cls.REPLICATION_METHOD: cls.INCREMENTAL,
                 cls.REPLICATION_KEYS: { "updated_at" },
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: True,
                 cls.API_LIMIT: 1
             },
             "users": {
                 cls.PRIMARY_KEYS: { "id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "workspaces": {
                 cls.PRIMARY_KEYS: { "id" },
                 cls.REPLICATION_METHOD: cls.FULL_TABLE,
                 cls.REPLICATION_KEYS: set(),
-                cls.OBEYS_START_DATE: False,
+                cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             }
         }
@@ -184,10 +184,6 @@ class MondayBaseTest(BaseCase):
     def get_properties(self, original: bool = True):
         """Configuration of properties required for the tap."""
         return_value = {
-            "start_date": "2022-07-01T00:00:00Z"
+            "start_date": self.start_date
         }
-        if original:
-            return return_value
-
-        return_value["start_date"] = self.start_date
         return return_value

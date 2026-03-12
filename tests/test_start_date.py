@@ -37,4 +37,4 @@ class MondayStartDateTest(StartDateTest, MondayBaseTest):
 
     @property
     def start_date_2(self):
-        return "2023-09-01T00:00:00Z"
+        return "2025-09-01T00:00:00Z"
