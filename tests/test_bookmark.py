@@ -10,6 +10,10 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
         "bookmarks": {
             "boards": { "updated_at" : "2020-01-01T00:00:00Z"},
             "board_activity_logs": { "created_at" : "2020-01-01T00:00:00Z"},
+            "board_items": { "updated_at" : "2020-01-01T00:00:00Z"},
+            "platform_api": { "last_updated" : "2020-01-01T00:00:00Z"},
+            "updates": { "updated_at" : "2020-01-01T00:00:00Z"},
+            "reply": { "updated_at" : "2020-01-01T00:00:00Z"},
         }
     }
     @staticmethod
@@ -17,7 +21,7 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
         return "tap_tester_monday_bookmark_test"
 
     def streams_to_test(self):
-        # excluded streams: full_table streams + streams with insufficient test data
+        # excluded streams: full_table streams
         streams_to_exclude = {
             "audit_event_catalogue",
             "column_values",
@@ -32,16 +36,6 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
             "account",
             "assets",
             "users",
-            "platform_api",
-            # board_items is a child of boards; the parent bookmark filter can
-            # exclude boards whose items would otherwise match, causing zero
-            # records in sync 2 and bookmark regression.
-            "board_items",
-            # updates and reply have too few records with unique replication-key
-            # values for calculate_new_bookmarks to produce a meaningful
-            # manipulated bookmark (all records still pass the filter).
-            "updates",
-            "reply",
         }
         return self.expected_stream_names().difference(streams_to_exclude)
 
