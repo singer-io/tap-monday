@@ -12,7 +12,7 @@ class MondayStartDateTest(StartDateTest, MondayBaseTest):
         return "tap_tester_monday_start_date_test"
 
     def streams_to_test(self):
-        # Skip streams due to lack of test data (full-table only)
+        # Skip streams with insufficient test data or not suitable for start-date assertions
         streams_to_exclude = {
             "account",
             "assets",
