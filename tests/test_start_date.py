@@ -28,8 +28,8 @@ class MondayStartDateTest(StartDateTest, MondayBaseTest):
             "platform_api",
             "tags",
             "teams",
-            # all updates have updated_at >= start_date_2, so start date filtering
-            # cannot reduce the record count; insufficient historical data spread
+            # updates stream has all records with updated_at >= start_date_2,
+            # so start date filtering cannot reduce the record count
             "updates",
             "users",
             "workspaces",
