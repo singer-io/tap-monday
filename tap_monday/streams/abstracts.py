@@ -458,7 +458,7 @@ class ParentChildBookmarkMixin:
             if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
                 continue
 
-            bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
+            bookmark_key = child.replication_keys[0]
             super().write_bookmark(state, child.tap_stream_id, key=bookmark_key, value=value)
 
         return state
