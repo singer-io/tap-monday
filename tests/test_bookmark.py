@@ -11,7 +11,6 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
             "boards": { "updated_at" : "2020-01-01T00:00:00Z"},
             "board_activity_logs": { "created_at" : "2020-01-01T00:00:00Z"},
             "board_items": { "updated_at" : "2020-01-01T00:00:00Z"},
-            "platform_api": { "last_updated" : "2020-01-01T00:00:00Z"},
             "updates": { "updated_at" : "2020-01-01T00:00:00Z"},
             "reply": { "updated_at" : "2020-01-01T00:00:00Z"},
         }
@@ -21,7 +20,7 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
         return "tap_tester_monday_bookmark_test"
 
     def streams_to_test(self):
-        # excluded streams: full_table streams
+        # excluded streams: full_table streams and streams with insufficient test data
         streams_to_exclude = {
             "audit_event_catalogue",
             "column_values",
@@ -36,6 +35,9 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
             "account",
             "assets",
             "users",
+            # platform_api returns only 1 system-level record (API usage analytics),
+            # insufficient for bookmark testing which requires >= 3 unique replication values
+            "platform_api",
         }
         return self.expected_stream_names().difference(streams_to_exclude)
 
@@ -45,5 +47,26 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
         that will sync 2 records in sync 2 (plus any necessary look back data)
         """
         new_bookmarks = super().calculate_new_bookmarks()
-        return {key: {k: v.replace(".000000Z", ".000Z") for k, v in value.items()}
+        new_bookmarks = {key: {k: v.replace(".000000Z", ".000Z") for k, v in value.items()}
                 for key, value in new_bookmarks.items()}
+
+        # Parent streams (ParentChildBookmarkMixin) use min(parent, children) as
+        # the effective bookmark. Adjust parent bookmarks to reflect this so the
+        # test assertion for records respecting the bookmark uses the correct value.
+        parent_children = {
+            "boards": ["board_items", "board_activity_logs"],
+            "updates": ["reply"],
+        }
+        for parent, children in parent_children.items():
+            if parent not in new_bookmarks:
+                continue
+            parent_key = next(iter(new_bookmarks[parent]))
+            parent_val = new_bookmarks[parent][parent_key]
+            for child in children:
+                if child in new_bookmarks:
+                    child_key = next(iter(new_bookmarks[child]))
+                    child_val = new_bookmarks[child][child_key]
+                    parent_val = min(parent_val, child_val)
+            new_bookmarks[parent][parent_key] = parent_val
+
+        return new_bookmarks

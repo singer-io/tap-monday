@@ -23,6 +23,9 @@ class MondayStartDateTest(StartDateTest, MondayBaseTest):
             "column_values",
             "docs",
             "folders",
+            # platform_api returns only 1 system-level record (API usage analytics),
+            # insufficient for start date testing
+            "platform_api",
             "tags",
             "teams",
             "users",
