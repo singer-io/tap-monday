@@ -35,9 +35,7 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
             "account",
             "assets",
             "users",
-            # platform_api returns only 1 system-level record (API usage analytics),
-            # insufficient for bookmark testing which requires >= 3 unique replication values
-            "platform_api",
+            "platform_api"
         }
         return self.expected_stream_names().difference(streams_to_exclude)
 
