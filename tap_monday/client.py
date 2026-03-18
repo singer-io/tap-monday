@@ -10,6 +10,7 @@ from singer import get_logger, metrics
 from tap_monday.exceptions import (
     ERROR_CODE_EXCEPTION_MAPPING,
     MondayError,
+    MondayCursorExpiredError,
     MondayRateLimitError,
     MondayInternalServerError,
     MondayServiceUnavailableError)
@@ -37,6 +38,8 @@ def raise_for_error(response: requests.Response) -> None:
                 error = error_messages[0].get("message")
                 error_extension = error_messages[0].get("extensions", {}).get("code")
             message = "HTTP-error-code: {}, Error: {}, Error Extensions: {}".format(response.status_code, error, error_extension)
+            if error_extension == "CursorException":
+                raise MondayCursorExpiredError(message, response) from None
         else:
             message = "HTTP-error-code: {}, Error: {}".format(
                 response.status_code,

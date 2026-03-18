@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
-from singer import get_logger
+from singer import get_logger, metrics, write_record
 from tap_monday.streams.abstracts import IncrementalStream
+from tap_monday.exceptions import MondayCursorExpiredError
 
 LOGGER = get_logger()
 
@@ -89,4 +90,76 @@ class BoardItems(IncrementalStream):
         next_page += 1
         self.update_data_payload(self._graphql_query, parent_record)
         return next_page
+
+    def sync(
+        self,
+        state: Dict,
+        transformer,
+        parent_obj: Dict = None,
+    ) -> Dict:
+        """Override sync to gracefully handle Monday.com cursor expiration.
+
+        When the API returns a ``CursorException`` mid-pagination the current
+        cursor is discarded, the bookmark filter is tightened to the latest
+        ``updated_at`` value seen so far (to reduce duplicates), and the query
+        is restarted from the beginning for the current board.
+        """
+        bookmark_date = self.get_bookmark(state, self.tap_stream_id)
+        current_max_bookmark_date = bookmark_date
+        self.url_endpoint = self.get_url_endpoint(parent_obj)
+        self._graphql_query = self.get_graphql_query(self.root_field)
+        self.update_data_payload(graphql_query=self._graphql_query, parent_obj=parent_obj)
+        # After a cursor-expiry restart we use a strict (>) filter so that the
+        # record at exactly the tightened bookmark timestamp is not re-emitted.
+        strict_bookmark_filter = False
+
+        with metrics.record_counter(self.tap_stream_id) as counter:
+            while True:
+                try:
+                    for record in self.get_records(parent_obj):
+                        record = self.modify_object(record, parent_obj)
+                        transformed_record = transformer.transform(
+                            record, self.schema, self.metadata
+                        )
+                        record_timestamp = transformed_record[self.replication_keys[0]]
+                        passes_filter = (
+                            record_timestamp > bookmark_date
+                            if strict_bookmark_filter
+                            else record_timestamp >= bookmark_date
+                        )
+                        if passes_filter:
+                            if self.is_selected():
+                                write_record(self.tap_stream_id, transformed_record)
+                                counter.increment()
+                            current_max_bookmark_date = max(
+                                current_max_bookmark_date, record_timestamp
+                            )
+                            for child in self.child_to_sync:
+                                child.sync(
+                                    state=state,
+                                    transformer=transformer,
+                                    parent_obj=record,
+                                )
+                    break  # all pages fetched successfully
+
+                except MondayCursorExpiredError:
+                    LOGGER.warning(
+                        "Cursor expired for stream '%s' while paginating board '%s'. "
+                        "Restarting query using latest bookmark: %s",
+                        self.tap_stream_id,
+                        parent_obj.get("id") if parent_obj else "unknown",
+                        current_max_bookmark_date,
+                    )
+                    # Tighten the filter so already-written records are skipped
+                    bookmark_date = current_max_bookmark_date
+                    self.bookmark_value = current_max_bookmark_date
+                    strict_bookmark_filter = True
+                    # Reset cursor so the next iteration starts a fresh query
+                    self.cursor = None
+                    self.update_data_payload(self._graphql_query, parent_obj)
+
+        state = self.write_bookmark(
+            state, self.tap_stream_id, value=current_max_bookmark_date
+        )
+        return counter.value, state
 
