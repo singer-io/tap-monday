@@ -13,7 +13,7 @@ the next page is fetched the API returns HTTP 200 with ``errors[].extensions.cod
 """
 
 import unittest
-from unittest.mock import MagicMock, patch, PropertyMock, call
+from unittest.mock import MagicMock, patch, PropertyMock
 
 from singer import Transformer
 
