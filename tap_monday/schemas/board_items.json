@@ -86,42 +86,8 @@
         "description": {
             "type": [
                 "null",
-                "object"
-            ],
-            "properties": {
-                "id": {
-                    "type": [
-                        "null",
-                        "string"
-                    ]
-                },
-                "blocks": {
-                    "type": [
-                        "null",
-                        "array"
-                    ],
-                    "items": {
-                        "type": [
-                            "null",
-                            "object"
-                        ],
-                        "properties": {
-                            "id": {
-                                "type": [
-                                    "null",
-                                    "string"
-                                ]
-                            },
-                            "content": {
-                                "type": [
-                                    "null",
-                                    "string"
-                                ]
-                            }
-                        }
-                    }
-                }
-            }
+                "string"
+            ]
         },
         "relative_link": {
             "type": [

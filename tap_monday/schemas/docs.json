@@ -98,7 +98,6 @@
                 "string"
             ]
         }
-    },
-    "additionalProperties": true
+    }
 }
 

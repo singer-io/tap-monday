@@ -45,6 +45,5 @@
             ],
             "format": "date-time"
         }
-    },
-    "additionalProperties": true
+    }
 }

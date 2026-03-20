@@ -150,6 +150,5 @@
                 "additionalProperties": true
             }
         }
-    },
-    "additionalProperties": true
+    }
 }

@@ -52,7 +52,6 @@
                 "string"
             ]
         }
-    },
-    "additionalProperties": true
+    }
 }
 

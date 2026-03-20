@@ -67,6 +67,5 @@
                 "additionalProperties": true
             }
         }
-    },
-    "additionalProperties": true
+    }
 }
