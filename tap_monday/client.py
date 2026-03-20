@@ -38,7 +38,9 @@ def raise_for_error(response: requests.Response) -> None:
                 error = error_messages[0].get("message")
                 error_extension = error_messages[0].get("extensions", {}).get("code")
             message = "HTTP-error-code: {}, Error: {}, Error Extensions: {}".format(response.status_code, error, error_extension)
-            if error_extension == "CursorException":
+            # Scan *all* errors, not just errors[0], so a CursorException that
+            # is not the first entry in the list is still detected correctly.
+            if any(e.get("extensions", {}).get("code") == "CursorException" for e in error_messages):
                 raise MondayCursorExpiredError(message, response) from None
         else:
             message = "HTTP-error-code: {}, Error: {}".format(

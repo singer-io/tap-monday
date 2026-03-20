@@ -298,31 +298,125 @@ class TestBoardItemsSyncCursorExpiration(unittest.TestCase):
         self.assertIn("3", written_ids)
 
     def test_sync_cursor_reset_on_expiration(self):
-        """After cursor expiration the cursor attribute must be reset to None."""
+        """After cursor expiration the cursor attribute must be reset to None.
+
+        The test simulates a mid-pagination cursor by having fake_get_records
+        set stream.cursor to a non-None sentinel after yielding the first page
+        (mirroring what parse_raw_records does in production) and then calling
+        update_data_payload while the cursor is still set (mirroring what
+        update_pagination_key does).  The expiry handler must then reset the
+        cursor to None before restarting — captured in cursor_snapshots.
+
+        The assertion is order-sensitive: at least one non-None cursor must
+        appear in the snapshots *before* a subsequent None, proving that the
+        reset happened after real pagination state existed.
+        """
         page1 = [
             {"id": "1", "board_id": "board_1", "updated_at": "2024-02-01T00:00:00Z", "name": "A"},
         ]
         page2 = [
             {"id": "2", "board_id": "board_1", "updated_at": "2024-03-01T00:00:00Z", "name": "B"},
         ]
-        cursor_after_expiry = []
 
-        batches = [page1, MondayCursorExpiredError, page2]
-        stream = self._make_stream_with_records(batches)
+        stream = make_board_items_stream()
+        stream.bookmark_value = None
         stream.child_to_sync = []
 
+        cursor_snapshots = []
         original_update_payload = stream.update_data_payload
 
         def tracking_update_data_payload(*args, **kwargs):
-            cursor_after_expiry.append(stream.cursor)
+            cursor_snapshots.append(stream.cursor)
             return original_update_payload(*args, **kwargs)
 
         stream.update_data_payload = tracking_update_data_payload
 
-        self._run_sync(stream)
+        call_n = {"n": 0}
+        parent_obj = {"id": "board_1"}
 
-        # The first call to update_data_payload after the expiry should see cursor=None
-        self.assertIn(None, cursor_after_expiry, "cursor must be None when restarting after expiry")
+        def cursor_simulating_get_records(parent_record=None):
+            call_n["n"] += 1
+            if call_n["n"] == 1:
+                # Yield first page, then simulate pagination cursor being set
+                # (mirrors what parse_raw_records does), trigger update_data_payload
+                # while the cursor is non-None (mirrors update_pagination_key),
+                # and finally raise expiry.
+                for r in page1:
+                    yield {"creator": None, "group": None, "parent_item": None, **r}
+                stream.cursor = "simulated_page_2_cursor"
+                # This call is what makes the cursor=non-None snapshot visible.
+                stream.update_data_payload(stream._graphql_query, parent_obj)
+                raise MondayCursorExpiredError("cursor expired")
+            else:
+                # Restart: yield second page normally, no cursor.
+                for r in page2:
+                    yield {"creator": None, "group": None, "parent_item": None, **r}
+
+        stream.get_records = cursor_simulating_get_records
+
+        self._run_sync(stream, parent_obj=parent_obj)
+
+        # Order-sensitive assertion: a non-None cursor must appear *before*
+        # a subsequent None reset — proving the handler ran after real pagination.
+        saw_non_none_before_reset = False
+        saw_reset_after_expiry = False
+        for value in cursor_snapshots:
+            if value is not None:
+                saw_non_none_before_reset = True
+            elif saw_non_none_before_reset:
+                saw_reset_after_expiry = True
+                break
+
+        self.assertTrue(
+            saw_non_none_before_reset and saw_reset_after_expiry,
+            f"Expected a non-None cursor followed by None in snapshots, got: {cursor_snapshots}",
+        )
+
+    def test_sync_raises_after_exceeding_max_retries(self):
+        """sync() must raise RuntimeError once MAX_CURSOR_RETRIES is exceeded.
+
+        Prevents an infinite loop when the API deterministically returns
+        CursorException for every request on a given board.
+        """
+        from tap_monday.streams.board_items import MAX_CURSOR_RETRIES
+
+        # Build a batch list with MAX_CURSOR_RETRIES + 1 consecutive expiries
+        # (no records ever succeed).
+        batches = [MondayCursorExpiredError] * (MAX_CURSOR_RETRIES + 1)
+        stream = self._make_stream_with_records(batches)
+        stream.child_to_sync = []
+
+        with self.assertRaises(RuntimeError) as ctx:
+            self._run_sync(stream)
+
+        self.assertIn("Aborting", str(ctx.exception))
+
+    def test_sync_no_strict_filter_when_no_progress_before_expiry(self):
+        """strict_bookmark_filter must NOT be set when the cursor expires before
+        any record has been written past the original bookmark.
+
+        If the strict filter were applied in this case, records whose
+        updated_at equals the original bookmark would be skipped on restart,
+        causing data loss.
+        """
+        # The cursor expires immediately — no records are yielded first.
+        # On restart a record at exactly the bookmark timestamp is present.
+        bookmark_date = "2024-01-01T00:00:00Z"
+        page_after_restart = [
+            {"id": "1", "board_id": "board_1", "updated_at": bookmark_date, "name": "A"},
+        ]
+        batches = [MondayCursorExpiredError, page_after_restart]
+        stream = self._make_stream_with_records(batches)
+        stream.child_to_sync = []
+
+        _, _, mock_write_record = self._run_sync(stream, bookmark_date=bookmark_date)
+
+        written_ids = {call_args[0][1]["id"] for call_args in mock_write_record.call_args_list}
+        self.assertIn(
+            "1",
+            written_ids,
+            "Record at the original bookmark timestamp must not be skipped after a zero-progress expiry",
+        )
 
 
 class TestBoardItemsSyncNoExpiration(unittest.TestCase):

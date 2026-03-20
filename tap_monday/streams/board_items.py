@@ -1,7 +1,12 @@
-from typing import Dict, Any, List
-from singer import get_logger, metrics, write_record
+from typing import Dict, Any, List, Tuple
+from singer import get_logger, metrics, write_record, Transformer
 from tap_monday.streams.abstracts import IncrementalStream
 from tap_monday.exceptions import MondayCursorExpiredError
+
+# Maximum number of times a single board's query will be restarted after a
+# cursor expiry before aborting.  Prevents an infinite loop in the unlikely
+# case where the API consistently expires cursors for a given board.
+MAX_CURSOR_RETRIES = 5
 
 LOGGER = get_logger()
 
@@ -94,15 +99,19 @@ class BoardItems(IncrementalStream):
     def sync(
         self,
         state: Dict,
-        transformer,
+        transformer: Transformer,
         parent_obj: Dict = None,
-    ) -> Dict:
+    ) -> Tuple[int, Dict]:
         """Override sync to gracefully handle Monday.com cursor expiration.
 
         When the API returns a ``CursorException`` mid-pagination the current
         cursor is discarded, the bookmark filter is tightened to the latest
         ``updated_at`` value seen so far (to reduce duplicates), and the query
         is restarted from the beginning for the current board.
+
+        At most ``MAX_CURSOR_RETRIES`` restarts are allowed per board; if the
+        limit is exceeded the error is re-raised so the sync does not loop
+        indefinitely.
         """
         bookmark_date = self.get_bookmark(state, self.tap_stream_id)
         current_max_bookmark_date = bookmark_date
@@ -111,7 +120,11 @@ class BoardItems(IncrementalStream):
         self.update_data_payload(graphql_query=self._graphql_query, parent_obj=parent_obj)
         # After a cursor-expiry restart we use a strict (>) filter so that the
         # record at exactly the tightened bookmark timestamp is not re-emitted.
+        # Only enabled once we have actually advanced past the original bookmark;
+        # if no records were seen before expiry the filter would incorrectly skip
+        # records whose updated_at equals the original bookmark.
         strict_bookmark_filter = False
+        restart_count = 0
 
         with metrics.record_counter(self.tap_stream_id) as counter:
             while True:
@@ -143,17 +156,32 @@ class BoardItems(IncrementalStream):
                     break  # all pages fetched successfully
 
                 except MondayCursorExpiredError:
+                    restart_count += 1
+                    if restart_count > MAX_CURSOR_RETRIES:
+                        raise RuntimeError(
+                            f"Cursor expired {restart_count} times for stream "
+                            f"'{self.tap_stream_id}' on board "
+                            f"'{parent_obj.get('id') if parent_obj else 'unknown'}'. "
+                            "Aborting to prevent an infinite loop."
+                        )
                     LOGGER.warning(
-                        "Cursor expired for stream '%s' while paginating board '%s'. "
-                        "Restarting query using latest bookmark: %s",
+                        "Cursor expired for stream '%s' while paginating board '%s' "
+                        "(restart %d/%d). Restarting query using latest bookmark: %s",
                         self.tap_stream_id,
                         parent_obj.get("id") if parent_obj else "unknown",
+                        restart_count,
+                        MAX_CURSOR_RETRIES,
                         current_max_bookmark_date,
                     )
-                    # Tighten the filter so already-written records are skipped
-                    bookmark_date = current_max_bookmark_date
-                    self.bookmark_value = current_max_bookmark_date
-                    strict_bookmark_filter = True
+                    # Only tighten the bookmark filter when progress was made
+                    # (i.e. we actually advanced past the original bookmark).
+                    # If the cursor expired before any record was written we
+                    # keep the original bookmark so records at that exact
+                    # timestamp are not lost.
+                    if current_max_bookmark_date > bookmark_date:
+                        bookmark_date = current_max_bookmark_date
+                        self.bookmark_value = current_max_bookmark_date
+                        strict_bookmark_filter = True
                     # Reset cursor so the next iteration starts a fresh query
                     self.cursor = None
                     self.update_data_payload(self._graphql_query, parent_obj)
