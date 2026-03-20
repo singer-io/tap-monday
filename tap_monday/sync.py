@@ -46,12 +46,19 @@ def sync(client: Client, config: Dict, catalog: singer.Catalog, state) -> None:
     LOGGER.info("last/currently syncing stream: {}".format(last_stream))
 
     with singer.Transformer(integer_datetime_fmt=UNIX_MILLISECONDS_INTEGER_DATETIME_PARSING) as transformer:
+        # Resume from the last syncing stream to avoid re-processing already completed streams.
+        resume_from = last_stream
         for stream_name in streams_to_sync:
             stream = STREAMS[stream_name](client, catalog.get_stream(stream_name))
             if stream.parent:
                 if stream.parent not in streams_to_sync:
                     streams_to_sync.append(stream.parent)
                 continue
+
+            if resume_from and stream_name != resume_from:
+                LOGGER.info("Skipping stream {} (resuming from {})".format(stream_name, resume_from))
+                continue
+            resume_from = None
 
             write_schema(stream, client, streams_to_sync, catalog)
 
