@@ -23,9 +23,7 @@ def discover() -> Catalog:
             LOGGER.error("type schema_dict: {}".format(type(schema_dict)))
             raise err
 
-        mdata_map = metadata.to_map(mdata)
-        key_properties = mdata_map.get((), {}).get("table-key-properties")
-        replication_key = (mdata_map.get((), {}).get("valid-replication-keys") or [None])[0]
+        key_properties = metadata.to_map(mdata).get((), {}).get("table-key-properties")
 
         catalog.streams.append(
             CatalogEntry(
@@ -34,7 +32,6 @@ def discover() -> Catalog:
                 key_properties=key_properties,
                 schema=schema,
                 metadata=mdata,
-                replication_key=replication_key,
             )
         )
 
