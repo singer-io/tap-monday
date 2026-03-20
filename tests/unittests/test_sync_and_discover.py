@@ -1,12 +1,9 @@
 import unittest
-from unittest.mock import patch, MagicMock, call
-from parameterized import parameterized
-import json
-import os
+from unittest.mock import patch, MagicMock
 from pathlib import Path
 
 import singer
-from tap_monday.sync import sync, write_schema, update_currently_syncing
+from tap_monday.sync import sync
 from tap_monday.discover import discover
 
 SCHEMAS_DIR = Path(__file__).parent.parent.parent / "tap_monday" / "schemas"
