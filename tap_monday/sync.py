@@ -45,6 +45,20 @@ def sync(client: Client, config: Dict, catalog: singer.Catalog, state) -> None:
     last_stream = singer.get_currently_syncing(state)
     LOGGER.info("last/currently syncing stream: {}".format(last_stream))
 
+    # Normalize streams_to_sync by adding any missing parent streams before
+    # deriving root_stream_names.  This must happen before the resume-target
+    # validation so that a valid currently_syncing root stream that was only
+    # implicitly required (because a child was selected) is not mistakenly
+    # treated as stale and cleared.
+    # Walk the list with an explicit index so appended parents are also visited.
+    idx = 0
+    while idx < len(streams_to_sync):
+        name = streams_to_sync[idx]
+        parent = getattr(STREAMS.get(name), "parent", None)
+        if parent and parent not in streams_to_sync:
+            streams_to_sync.append(parent)
+        idx += 1
+
     # Determine which streams are roots (no parent) so we can validate the
     # resume target before entering the loop.  A stale currently_syncing value
     # (child stream name, removed stream, renamed stream, etc.) would never
@@ -73,8 +87,8 @@ def sync(client: Client, config: Dict, catalog: singer.Catalog, state) -> None:
         for stream_name in streams_to_sync:
             stream = STREAMS[stream_name](client, catalog.get_stream(stream_name))
             if stream.parent:
-                if stream.parent not in streams_to_sync:
-                    streams_to_sync.append(stream.parent)
+                # Parent streams were already added during pre-processing above;
+                # child streams are driven by their parent's sync, so skip them.
                 continue
 
             if resume_from and stream_name != resume_from:
