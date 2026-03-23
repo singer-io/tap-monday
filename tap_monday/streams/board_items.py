@@ -208,7 +208,6 @@ class BoardItems(IncrementalStream):
                     # on the next pass without dropping peers at the same timestamp.
                     if current_max_bookmark_date > bookmark_date:
                         bookmark_date = current_max_bookmark_date
-                        self.bookmark_value = current_max_bookmark_date
                     # Reset cursor so the next iteration starts a fresh query
                     self.cursor = None
                     self.update_data_payload(self._graphql_query, parent_obj)
