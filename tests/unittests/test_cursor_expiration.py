@@ -418,6 +418,38 @@ class TestBoardItemsSyncCursorExpiration(unittest.TestCase):
             "Record at the original bookmark timestamp must not be skipped after a zero-progress expiry",
         )
 
+    def test_child_cursor_expiry_is_not_caught_by_parent_handler(self):
+        """MondayCursorExpiredError raised inside child.sync() must NOT trigger
+        the parent board's restart handler.
+
+        If the child's cursor expires, the parent's except-clause would
+        otherwise reset the parent cursor and restart the entire board query —
+        incorrectly treating a child failure as a parent failure.
+        The fix wraps child.sync() calls so their MondayCursorExpiredError is
+        re-raised as RuntimeError, which is not caught by the parent handler.
+        """
+        page1 = [
+            {"id": "1", "board_id": "board_1", "updated_at": "2024-02-01T00:00:00Z", "name": "A"},
+        ]
+        batches = [page1]
+        stream = self._make_stream_with_records(batches)
+
+        # Simulate a child stream whose sync() raises MondayCursorExpiredError
+        mock_child = MagicMock()
+        mock_child.tap_stream_id = "column_values"
+        mock_child.sync.side_effect = MondayCursorExpiredError("child cursor expired")
+        stream.child_to_sync = [mock_child]
+
+        with self.assertRaises(RuntimeError) as ctx:
+            self._run_sync(stream)
+
+        self.assertIn("column_values", str(ctx.exception))
+        self.assertIn("Child cursor expiry", str(ctx.exception))
+        # The parent's restart counter must not have incremented —
+        # the board was NOT restarted; the error propagated immediately.
+        self.assertEqual(mock_child.sync.call_count, 1,
+                         "Child sync should have been called exactly once before failing")
+
 
 class TestBoardItemsSyncNoExpiration(unittest.TestCase):
     """Sanity-check that normal (no cursor expiry) sync still works."""

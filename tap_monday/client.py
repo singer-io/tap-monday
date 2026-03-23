@@ -31,17 +31,27 @@ def raise_for_error(response: requests.Response) -> None:
         response_json = {}
     if response.status_code not in [200, 201, 204] or "errors" in response_json:
         if response_json.get("errors"):
-            error = "Exception occured"
-            error_extension = "Error Code"
             error_messages = response_json.get("errors", [])
-            if error_messages:
-                error = error_messages[0].get("message")
-                error_extension = error_messages[0].get("extensions", {}).get("code")
-            message = "HTTP-error-code: {}, Error: {}, Error Extensions: {}".format(response.status_code, error, error_extension)
-            # Scan *all* errors, not just errors[0], so a CursorException that
-            # is not the first entry in the list is still detected correctly.
-            if any(e.get("extensions", {}).get("code") == "CursorException" for e in error_messages):
+            # Scan *all* errors; CursorException may not be the first entry.
+            # Use a default of None so StopIteration is never raised inside a
+            # generator caller (PEP 479 turns that into RuntimeError).
+            cursor_error = next(
+                (e for e in error_messages
+                 if e.get("extensions", {}).get("code") == "CursorException"),
+                None,
+            )
+            if cursor_error:
+                message = "HTTP-error-code: {}, Error: {}, Error Extensions: {}".format(
+                    response.status_code,
+                    cursor_error.get("message"),
+                    "CursorException",
+                )
                 raise MondayCursorExpiredError(message, response) from None
+            # Non-cursor GraphQL error — fall through to generic handling.
+            error = error_messages[0].get("message", "Exception occurred")
+            error_extension = error_messages[0].get("extensions", {}).get("code", "Error Code")
+            message = "HTTP-error-code: {}, Error: {}, Error Extensions: {}".format(
+                response.status_code, error, error_extension)
         else:
             message = "HTTP-error-code: {}, Error: {}".format(
                 response.status_code,

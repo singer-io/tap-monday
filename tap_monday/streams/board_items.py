@@ -148,11 +148,27 @@ class BoardItems(IncrementalStream):
                                 current_max_bookmark_date, record_timestamp
                             )
                             for child in self.child_to_sync:
-                                child.sync(
-                                    state=state,
-                                    transformer=transformer,
-                                    parent_obj=record,
-                                )
+                                try:
+                                    child.sync(
+                                        state=state,
+                                        transformer=transformer,
+                                        parent_obj=record,
+                                    )
+                                except MondayCursorExpiredError as exc:
+                                    # A cursor expiry inside a child stream must not
+                                    # be caught by the parent's restart handler —
+                                    # doing so would reset the parent board's cursor
+                                    # when only the child's pagination failed.
+                                    # Re-raise as RuntimeError so it propagates up
+                                    # to the caller instead.
+                                    raise RuntimeError(
+                                        f"Cursor expired in child stream "
+                                        f"'{child.tap_stream_id}' while syncing "
+                                        f"parent '{self.tap_stream_id}' "
+                                        f"(board '{parent_obj.get('id') if parent_obj else 'unknown'}'). "
+                                        "Child cursor expiry must be handled within "
+                                        "the child stream itself."
+                                    ) from exc
                     break  # all pages fetched successfully
 
                 except MondayCursorExpiredError:
