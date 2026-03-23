@@ -45,9 +45,31 @@ def sync(client: Client, config: Dict, catalog: singer.Catalog, state) -> None:
     last_stream = singer.get_currently_syncing(state)
     LOGGER.info("last/currently syncing stream: {}".format(last_stream))
 
+    # Determine which streams are roots (no parent) so we can validate the
+    # resume target before entering the loop.  A stale currently_syncing value
+    # (child stream name, removed stream, renamed stream, etc.) would never
+    # match any root stream, causing every stream to be skipped and the state
+    # entry to remain set forever — wedging all future runs.
+    root_stream_names = {
+        name for name in streams_to_sync
+        if not getattr(STREAMS.get(name), "parent", None)
+    }
+
     with singer.Transformer(integer_datetime_fmt=UNIX_MILLISECONDS_INTEGER_DATETIME_PARSING) as transformer:
         # Resume from the last syncing stream to avoid re-processing already completed streams.
         resume_from = last_stream
+        if last_stream and last_stream not in root_stream_names:
+            LOGGER.warning(
+                "currently_syncing '%s' is not among the root streams that will "
+                "be synced %s (it may be a child stream, a stream that was "
+                "removed, or a renamed stream). Clearing currently_syncing so "
+                "the tap can make progress.",
+                last_stream,
+                sorted(root_stream_names),
+            )
+            update_currently_syncing(state, None)
+            resume_from = None
+
         for stream_name in streams_to_sync:
             stream = STREAMS[stream_name](client, catalog.get_stream(stream_name))
             if stream.parent:
