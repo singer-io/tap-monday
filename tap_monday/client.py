@@ -33,8 +33,8 @@ def raise_for_error(response: requests.Response) -> None:
         if response_json.get("errors"):
             error_messages = response_json.get("errors", [])
             # Scan *all* errors; CursorException may not be the first entry.
-            # Use a default of None so StopIteration is never raised inside a
-            # generator caller (PEP 479 turns that into RuntimeError).
+            # Use a default of None so the absence of CursorException is handled
+            # gracefully instead of raising StopIteration.
             cursor_error = next(
                 (e for e in error_messages
                  if e.get("extensions", {}).get("code") == "CursorException"),
