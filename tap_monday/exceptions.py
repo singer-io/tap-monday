@@ -15,6 +15,11 @@ class MondayBadRequestError(MondayError):
     """class representing 400 status code."""
     pass
 
+
+class MondayCursorExpiredError(MondayError):
+    """class representing a cursor expiration error returned by Monday.com's API."""
+    pass
+
 class MondayUnauthorizedError(MondayError):
     """class representing 401 status code."""
     pass

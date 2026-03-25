@@ -1,6 +1,12 @@
-from typing import Dict, Any, List
-from singer import get_logger
+from typing import Dict, Any, List, Tuple
+from singer import get_logger, metrics, write_record, Transformer
 from tap_monday.streams.abstracts import IncrementalStream
+from tap_monday.exceptions import MondayCursorExpiredError
+
+# Maximum number of times a single board's query will be restarted after a
+# cursor expiry before aborting.  Prevents an infinite loop in the unlikely
+# case where the API consistently expires cursors for a given board.
+MAX_CURSOR_RETRIES = 5
 
 LOGGER = get_logger()
 
@@ -89,4 +95,125 @@ class BoardItems(IncrementalStream):
         next_page += 1
         self.update_data_payload(self._graphql_query, parent_record)
         return next_page
+
+    def sync(
+        self,
+        state: Dict,
+        transformer: Transformer,
+        parent_obj: Dict = None,
+    ) -> Tuple[int, Dict]:
+        """Override sync to gracefully handle Monday.com cursor expiration.
+
+        When the API returns a ``CursorException`` mid-pagination the current
+        cursor is discarded, the bookmark filter is tightened to the latest
+        ``updated_at`` value seen so far (to reduce duplicates), and the query
+        is restarted from the beginning for the current board.
+
+        At most ``MAX_CURSOR_RETRIES`` restarts are allowed per board; if the
+        limit is exceeded the error is re-raised so the sync does not loop
+        indefinitely.
+        """
+        bookmark_date = self.get_bookmark(state, self.tap_stream_id)
+        current_max_bookmark_date = bookmark_date
+        self.url_endpoint = self.get_url_endpoint(parent_obj)
+        self._graphql_query = self.get_graphql_query(self.root_field)
+        self.update_data_payload(graphql_query=self._graphql_query, parent_obj=parent_obj)
+        # IDs of records already emitted whose updated_at equals the current
+        # boundary timestamp (current_max_bookmark_date).  On a cursor-expiry
+        # restart the filter stays inclusive (>=) so that peer records sharing
+        # that timestamp are not lost; this set is used to de-duplicate only
+        # the records that were already written in a previous attempt.
+        # The set is cleared automatically whenever current_max_bookmark_date
+        # advances, and is carried across restarts so de-dupe remains accurate
+        # even after multiple consecutive cursor expiries.
+        emitted_ids_at_max: set = set()
+        restart_count = 0
+
+        with metrics.record_counter(self.tap_stream_id) as counter:
+            while True:
+                try:
+                    for record in self.get_records(parent_obj):
+                        record = self.modify_object(record, parent_obj)
+                        transformed_record = transformer.transform(
+                            record, self.schema, self.metadata
+                        )
+                        record_timestamp = transformed_record[self.replication_keys[0]]
+                        if record_timestamp < bookmark_date:
+                            continue
+                        # Skip records that were already emitted in a previous
+                        # attempt at the boundary timestamp to avoid duplicates
+                        # while keeping the filter inclusive so that not-yet-
+                        # emitted peer records at the same timestamp are not lost.
+                        if (
+                            record_timestamp == bookmark_date
+                            and record["id"] in emitted_ids_at_max
+                        ):
+                            continue
+                        if self.is_selected():
+                            write_record(self.tap_stream_id, transformed_record)
+                            counter.increment()
+                        # Advance the boundary tracker; clear the de-dupe set
+                        # whenever we move to a strictly later timestamp.
+                        if record_timestamp > current_max_bookmark_date:
+                            current_max_bookmark_date = record_timestamp
+                            emitted_ids_at_max = set()
+                        if record_timestamp == current_max_bookmark_date:
+                            emitted_ids_at_max.add(record["id"])
+                        for child in self.child_to_sync:
+                            try:
+                                child.sync(
+                                    state=state,
+                                    transformer=transformer,
+                                    parent_obj=record,
+                                )
+                            except MondayCursorExpiredError as exc:
+                                # A cursor expiry inside a child stream must not
+                                # be caught by the parent's restart handler —
+                                # doing so would reset the parent board's cursor
+                                # when only the child's pagination failed.
+                                # Re-raise as RuntimeError so it propagates up
+                                # to the caller instead.
+                                raise RuntimeError(
+                                    f"Cursor expired in child stream "
+                                    f"'{child.tap_stream_id}' while syncing "
+                                    f"parent '{self.tap_stream_id}' "
+                                    f"(board '{parent_obj.get('id') if parent_obj else 'unknown'}'). "
+                                    "Child cursor expiry must be handled within "
+                                    "the child stream itself."
+                                ) from exc
+                    break  # all pages fetched successfully
+
+                except MondayCursorExpiredError:
+                    restart_count += 1
+                    if restart_count > MAX_CURSOR_RETRIES:
+                        raise RuntimeError(
+                            f"Cursor expired {restart_count} times for stream "
+                            f"'{self.tap_stream_id}' on board "
+                            f"'{parent_obj.get('id') if parent_obj else 'unknown'}'. "
+                            "Aborting to prevent an infinite loop."
+                        )
+                    LOGGER.warning(
+                        "Cursor expired for stream '%s' while paginating board '%s' "
+                        "(restart %d/%d). Restarting query using latest bookmark: %s",
+                        self.tap_stream_id,
+                        parent_obj.get("id") if parent_obj else "unknown",
+                        restart_count,
+                        MAX_CURSOR_RETRIES,
+                        current_max_bookmark_date,
+                    )
+                    # Tighten the bookmark to the furthest point reached so that
+                    # records already safely in the past are not re-processed.
+                    # emitted_ids_at_max is intentionally kept so that records
+                    # already emitted at the new bookmark boundary are de-duped
+                    # on the next pass without dropping peers at the same timestamp.
+                    if current_max_bookmark_date > bookmark_date:
+                        bookmark_date = current_max_bookmark_date
+                    # Reset cursor so the next iteration starts a fresh query
+                    self.cursor = None
+                    self.update_data_payload(self._graphql_query, parent_obj)
+
+        state = self.write_bookmark(
+            state, self.tap_stream_id, value=current_max_bookmark_date
+        )
+        return counter.value, state
 
