@@ -19,13 +19,20 @@ stale-``currently_syncing`` clearing were added:
    the ``currently_syncing`` entry is absent from the state when the run ends.
 """
 
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
 import singer
-import tap_monday.sync as sync_module  # import as module to avoid __init__ shadowing
-
 from tap_monday.sync import sync, update_currently_syncing
+
+# tap_monday/__init__.py does `from tap_monday.sync import sync`, which shadows
+# the `tap_monday.sync` *attribute* with the function.  `import tap_monday.sync
+# as x` resolves via attribute lookup and therefore yields the function, not the
+# module.  Grabbing the entry from sys.modules directly always returns the real
+# module object regardless of attribute shadowing.
+import tap_monday.sync  # ensure the module is in sys.modules
+_sync_module = sys.modules['tap_monday.sync']
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +147,7 @@ class TestParentInjection(unittest.TestCase):
         catalog = _make_catalog(["child_of_b"])  # only the child is selected
         state = {}
 
-        with patch.object(sync_module, "STREAMS", self.fake_streams):
+        with patch.object(_sync_module, "STREAMS", self.fake_streams):
             sync(client=_make_client(), config={}, catalog=catalog, state=state)
 
         self.assertIn(
@@ -158,7 +165,7 @@ class TestParentInjection(unittest.TestCase):
         catalog = _make_catalog(["child_of_b"])
         state = {}
 
-        with patch.object(sync_module, "STREAMS", self.fake_streams):
+        with patch.object(_sync_module, "STREAMS", self.fake_streams):
             sync(client=_make_client(), config={}, catalog=catalog, state=state)
 
         self.assertNotIn(
@@ -176,7 +183,7 @@ class TestParentInjection(unittest.TestCase):
         catalog = _make_catalog(["root_b", "child_of_b"])
         state = {}
 
-        with patch.object(sync_module, "STREAMS", self.fake_streams):
+        with patch.object(_sync_module, "STREAMS", self.fake_streams):
             sync(client=_make_client(), config={}, catalog=catalog, state=state)
 
         self.assertEqual(
@@ -207,7 +214,7 @@ class TestStaleSyncingCleared(unittest.TestCase):
         catalog = _make_catalog(selected)
         state = {"currently_syncing": currently_syncing}
 
-        with patch.object(sync_module, "STREAMS", self.fake_streams), \
+        with patch.object(_sync_module, "STREAMS", self.fake_streams), \
              patch("singer.write_state"), \
              patch("singer.Transformer", return_value=_transformer_patch()):
             sync(client=_make_client(), config={}, catalog=catalog, state=state)
@@ -257,7 +264,7 @@ class TestStaleSyncingCleared(unittest.TestCase):
         catalog = _make_catalog(["root_a", "root_b"])
         state = {"currently_syncing": "root_b"}
 
-        with patch.object(sync_module, "STREAMS", self.fake_streams), \
+        with patch.object(_sync_module, "STREAMS", self.fake_streams), \
              patch("singer.write_state"), \
              patch("singer.Transformer", return_value=_transformer_patch()):
             sync(client=_make_client(), config={}, catalog=catalog, state=state)
@@ -293,9 +300,9 @@ class TestResumeBehaviour(unittest.TestCase):
         catalog = _make_catalog(selected)
         state = {"currently_syncing": currently_syncing} if currently_syncing else {}
 
-        with patch("tap_monday.sync.STREAMS", self.fake_streams), \
-             patch("tap_monday.sync.singer.write_state"), \
-             patch("tap_monday.sync.singer.Transformer", return_value=_transformer_patch()):
+        with patch.object(_sync_module, "STREAMS", self.fake_streams), \
+             patch("singer.write_state"), \
+             patch("singer.Transformer", return_value=_transformer_patch()):
             sync(client=_make_client(), config={}, catalog=catalog, state=state)
 
         return state
