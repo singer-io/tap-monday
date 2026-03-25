@@ -23,6 +23,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 import singer
+import tap_monday.sync as sync_module  # import as module to avoid __init__ shadowing
 
 from tap_monday.sync import sync, update_currently_syncing
 
@@ -131,15 +132,15 @@ class TestParentInjection(unittest.TestCase):
             synced_list=self.synced,
         )
 
-    @patch("tap_monday.sync.singer.write_state")
-    @patch("tap_monday.sync.singer.Transformer")
+    @patch("singer.write_state")
+    @patch("singer.Transformer")
     def test_parent_injected_when_only_child_selected(self, mock_tf, mock_ws):
         """Parent is added to the queue and synced when only its child is selected."""
         mock_tf.return_value = _transformer_patch()
         catalog = _make_catalog(["child_of_b"])  # only the child is selected
         state = {}
 
-        with patch("tap_monday.sync.STREAMS", self.fake_streams):
+        with patch.object(sync_module, "STREAMS", self.fake_streams):
             sync(client=_make_client(), config={}, catalog=catalog, state=state)
 
         self.assertIn(
@@ -148,8 +149,8 @@ class TestParentInjection(unittest.TestCase):
             "root_b (parent) should have been synced even though only its child was selected",
         )
 
-    @patch("tap_monday.sync.singer.write_state")
-    @patch("tap_monday.sync.singer.Transformer")
+    @patch("singer.write_state")
+    @patch("singer.Transformer")
     def test_child_not_independently_synced(self, mock_tf, mock_ws):
         """The child stream must NOT appear in the top-level sync() call list
         because it is driven by its parent, not by the outer loop."""
@@ -157,7 +158,7 @@ class TestParentInjection(unittest.TestCase):
         catalog = _make_catalog(["child_of_b"])
         state = {}
 
-        with patch("tap_monday.sync.STREAMS", self.fake_streams):
+        with patch.object(sync_module, "STREAMS", self.fake_streams):
             sync(client=_make_client(), config={}, catalog=catalog, state=state)
 
         self.assertNotIn(
@@ -166,8 +167,8 @@ class TestParentInjection(unittest.TestCase):
             "child_of_b should not be independently synced by the outer loop",
         )
 
-    @patch("tap_monday.sync.singer.write_state")
-    @patch("tap_monday.sync.singer.Transformer")
+    @patch("singer.write_state")
+    @patch("singer.Transformer")
     def test_parent_injected_only_once(self, mock_tf, mock_ws):
         """When both the parent and child are explicitly selected the parent
         must not be duplicated in the queue (it would be synced twice)."""
@@ -175,7 +176,7 @@ class TestParentInjection(unittest.TestCase):
         catalog = _make_catalog(["root_b", "child_of_b"])
         state = {}
 
-        with patch("tap_monday.sync.STREAMS", self.fake_streams):
+        with patch.object(sync_module, "STREAMS", self.fake_streams):
             sync(client=_make_client(), config={}, catalog=catalog, state=state)
 
         self.assertEqual(
@@ -206,9 +207,9 @@ class TestStaleSyncingCleared(unittest.TestCase):
         catalog = _make_catalog(selected)
         state = {"currently_syncing": currently_syncing}
 
-        with patch("tap_monday.sync.STREAMS", self.fake_streams), \
-             patch("tap_monday.sync.singer.write_state"), \
-             patch("tap_monday.sync.singer.Transformer", return_value=_transformer_patch()):
+        with patch.object(sync_module, "STREAMS", self.fake_streams), \
+             patch("singer.write_state"), \
+             patch("singer.Transformer", return_value=_transformer_patch()):
             sync(client=_make_client(), config={}, catalog=catalog, state=state)
 
         return state
@@ -256,9 +257,9 @@ class TestStaleSyncingCleared(unittest.TestCase):
         catalog = _make_catalog(["root_a", "root_b"])
         state = {"currently_syncing": "root_b"}
 
-        with patch("tap_monday.sync.STREAMS", self.fake_streams), \
-             patch("tap_monday.sync.singer.write_state"), \
-             patch("tap_monday.sync.singer.Transformer", return_value=_transformer_patch()):
+        with patch.object(sync_module, "STREAMS", self.fake_streams), \
+             patch("singer.write_state"), \
+             patch("singer.Transformer", return_value=_transformer_patch()):
             sync(client=_make_client(), config={}, catalog=catalog, state=state)
 
         # root_b is a valid resume point so root_a must have been skipped.
