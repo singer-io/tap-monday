@@ -4,4 +4,3 @@
 
 ## 0.0.1
   * Initial Commit
-  * Updated python version. [#14](https://github.com/singer-io/tap-monday/pull/14)
