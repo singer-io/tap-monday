@@ -12,7 +12,7 @@ class MondayStartDateTest(StartDateTest, MondayBaseTest):
         return "tap_tester_monday_start_date_test"
 
     def streams_to_test(self):
-        # Skip streams due to lack of test data
+        # Skip streams with insufficient test data or not suitable for start-date assertions
         streams_to_exclude = {
             "account",
             "assets",
@@ -23,9 +23,14 @@ class MondayStartDateTest(StartDateTest, MondayBaseTest):
             "column_values",
             "docs",
             "folders",
+            # platform_api returns only 1 system-level record (API usage analytics),
+            # insufficient for start date testing
+            "platform_api",
             "tags",
             "teams",
-            "platform_api",
+            # updates stream has all records with updated_at >= start_date_2,
+            # so start date filtering cannot reduce the record count
+            "updates",
             "users",
             "workspaces",
         }
@@ -37,4 +42,4 @@ class MondayStartDateTest(StartDateTest, MondayBaseTest):
 
     @property
     def start_date_2(self):
-        return "2023-09-01T00:00:00Z"
+        return "2025-09-01T00:00:00Z"

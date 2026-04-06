@@ -435,8 +435,8 @@ class ParentChildBookmarkMixin:
             if getattr(child, "replication_method", "").upper() == "FULL_TABLE":
                 continue
 
-            bookmark_key = f"{self.tap_stream_id}_{self.replication_keys[0]}"
-            child_bookmark = super().get_bookmark(state, child.tap_stream_id, key=bookmark_key)
+            child_replication_key = child.replication_keys[0]
+            child_bookmark = super().get_bookmark(state, child.tap_stream_id, key=child_replication_key)
 
             if min_parent_bookmark:
                 min_parent_bookmark = min(min_parent_bookmark, child_bookmark)
