@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 
 setup(name="tap-monday",
-      version="0.1.1",
+      version="0.1.0",
       description="Singer.io tap for extracting data from Monday API",
       author="Stitch",
       url="http://singer.io",
