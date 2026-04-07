@@ -10,6 +10,7 @@ from singer import get_logger, metrics
 from tap_monday.exceptions import (
     ERROR_CODE_EXCEPTION_MAPPING,
     MondayError,
+    MondayCursorExpiredError,
     MondayRateLimitError,
     MondayInternalServerError,
     MondayServiceUnavailableError)
@@ -30,13 +31,27 @@ def raise_for_error(response: requests.Response) -> None:
         response_json = {}
     if response.status_code not in [200, 201, 204] or "errors" in response_json:
         if response_json.get("errors"):
-            error = "Exception occured"
-            error_extension = "Error Code"
             error_messages = response_json.get("errors", [])
-            if error_messages:
-                error = error_messages[0].get("message")
-                error_extension = error_messages[0].get("extensions", {}).get("code")
-            message = "HTTP-error-code: {}, Error: {}, Error Extensions: {}".format(response.status_code, error, error_extension)
+            # Scan *all* errors; CursorException may not be the first entry.
+            # Use a default of None so the absence of CursorException is handled
+            # gracefully instead of raising StopIteration.
+            cursor_error = next(
+                (e for e in error_messages
+                 if e.get("extensions", {}).get("code") == "CursorException"),
+                None,
+            )
+            if cursor_error:
+                message = "HTTP-error-code: {}, Error: {}, Error Extensions: {}".format(
+                    response.status_code,
+                    cursor_error.get("message"),
+                    "CursorException",
+                )
+                raise MondayCursorExpiredError(message, response) from None
+            # Non-cursor GraphQL error — fall through to generic handling.
+            error = error_messages[0].get("message", "Exception occurred")
+            error_extension = error_messages[0].get("extensions", {}).get("code", "Error Code")
+            message = "HTTP-error-code: {}, Error: {}, Error Extensions: {}".format(
+                response.status_code, error, error_extension)
         else:
             message = "HTTP-error-code: {}, Error: {}".format(
                 response.status_code,
