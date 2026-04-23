@@ -51,7 +51,10 @@ class MondayRateLimitError(MondayBackoffError):
         self.retry_after = None
 
         if response is not None:
-            response_json = response.json()
+            try:
+                response_json = response.json()
+            except Exception:
+                response_json = {}
             errors = response_json.get("errors", [])
             if errors:
                 extensions = errors[0].get("extensions", {})
