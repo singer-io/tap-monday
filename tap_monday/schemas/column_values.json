@@ -51,6 +51,13 @@
                 "null",
                 "string"
             ]
+        },
+        "updated_at": {
+            "type": [
+                "null",
+                "string"
+            ],
+            "format": "date-time"
         }
     },
     "additionalProperties": true
