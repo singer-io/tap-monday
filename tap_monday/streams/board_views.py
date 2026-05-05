@@ -35,3 +35,6 @@ class BoardViews(IncrementalStream):
     def parse_raw_records(self, raw_data: Any) -> List[Dict]:
         """Custom parsing for streams that return data[0]['groups']."""
         return raw_data[0].get("views", []) if raw_data else []
+
+    def write_bookmark(self, state: dict, stream: str, key: Any = None, value: Any = None) -> Dict:
+        return state

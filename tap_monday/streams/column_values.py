@@ -37,3 +37,5 @@ class ColumnValues(IncrementalStream):
         """Custom parsing for streams that return data[0]['columns']."""
         return raw_data[0].get("column_values") if raw_data else []
 
+    def write_bookmark(self, state: dict, stream: str, key: Any = None, value: Any = None) -> Dict:
+        return state
