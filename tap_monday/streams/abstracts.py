@@ -346,7 +346,7 @@ class IncrementalStream(BaseStream):
     def write_bookmark(self, state: dict, stream: str, key: Any = None, value: Any = None) -> Dict:
         """A wrapper for singer.get_bookmark to deal with compatibility for
         bookmark values or start values."""
-        if not (key or self.replication_keys):
+        if not (key or self.replication_keys) or self.parent:
             return state
 
         current_bookmark = get_bookmark(state, stream, key or self.replication_keys[0], self.client.config["start_date"])
