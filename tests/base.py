@@ -70,15 +70,15 @@ class MondayBaseTest(BaseCase):
             },
             "board_columns": {
                 cls.PRIMARY_KEYS: { "id", "board_id" },
-                cls.REPLICATION_METHOD: cls.FULL_TABLE,
-                cls.REPLICATION_KEYS: set(),
+                cls.REPLICATION_METHOD: cls.INCREMENTAL,
+                cls.REPLICATION_KEYS: { "updated_at" },
                 cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "board_groups": {
                 cls.PRIMARY_KEYS: { "id", "board_id" },
-                cls.REPLICATION_METHOD: cls.FULL_TABLE,
-                cls.REPLICATION_KEYS: set(),
+                cls.REPLICATION_METHOD: cls.INCREMENTAL,
+                cls.REPLICATION_KEYS: { "updated_at" },
                 cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
@@ -91,15 +91,15 @@ class MondayBaseTest(BaseCase):
             },
             "board_views": {
                 cls.PRIMARY_KEYS: { "id", "board_id" },
-                cls.REPLICATION_METHOD: cls.FULL_TABLE,
-                cls.REPLICATION_KEYS: set(),
+                cls.REPLICATION_METHOD: cls.INCREMENTAL,
+                cls.REPLICATION_KEYS: { "updated_at" },
                 cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },
             "column_values": {
                 cls.PRIMARY_KEYS: { "id", "item_id", "board_id" },
-                cls.REPLICATION_METHOD: cls.FULL_TABLE,
-                cls.REPLICATION_KEYS: set(),
+                cls.REPLICATION_METHOD: cls.INCREMENTAL,
+                cls.REPLICATION_KEYS: { "updated_at" },
                 cls.RESPECTS_START_DATE: False,
                 cls.API_LIMIT: 1
             },

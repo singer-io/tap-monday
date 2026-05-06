@@ -1,5 +1,8 @@
 from typing import Dict, Any
-from singer import get_logger
+from singer import (
+    get_bookmark,
+    get_logger
+)
 from tap_monday.streams.abstracts import IncrementalStream, ParentChildBookmarkMixin
 
 LOGGER = get_logger()
@@ -31,3 +34,12 @@ class Boards(ParentChildBookmarkMixin, IncrementalStream):
         graphql_query = self.get_graphql_query(root_field)
         super().update_data_payload(graphql_query=graphql_query, parent_obj=parent_obj, **kwargs)
 
+    def get_bookmark(self, state: dict, stream: str, key: Any = None) -> int:
+        """A wrapper for singer.get_bookmark to deal with compatibility for
+        bookmark values or start values."""
+        return get_bookmark(
+            state,
+            stream,
+            key or self.replication_keys[0],
+            self.client.config["start_date"],
+        )
