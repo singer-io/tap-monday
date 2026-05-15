@@ -31,6 +31,7 @@ def main():
 
     with Client(parsed_args.config) as client:
         if parsed_args.discover:
+            client.check_access()
             do_discover()
         elif parsed_args.catalog:
             sync(
