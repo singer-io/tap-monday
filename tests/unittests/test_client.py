@@ -7,7 +7,8 @@ from tap_monday.client import Client, raise_for_error, wait_if_retry_after
 from tap_monday.exceptions import (
     ERROR_CODE_EXCEPTION_MAPPING,
     MondayError,
-    MondayRateLimitError
+    MondayRateLimitError,
+    MondayUnauthorizedError
 )
 
 
@@ -131,6 +132,39 @@ class TestClientMakeRequest(unittest.TestCase):
                 self.assertEqual(result, expected_result)
 
             self.assertEqual(mock_request.call_count, len(side_effects))
+
+
+class TestCheckAccess(unittest.TestCase):
+    """Test the Client.check_access() token validation method."""
+
+    def setUp(self):
+        self.config = {
+            "api_token": "dummy_token",
+            "start_date": "2019-01-01T00:00:00Z",
+            "user_agent": "tap-monday test@test.com",
+            "api_version": "2025-07",
+            "request_timeout": 300
+        }
+        self.client = Client(self.config)
+
+    def test_check_access_valid_token(self):
+        """check_access succeeds without error when the token is valid."""
+        mock_response = MockResponse(200, {"data": {"me": {"id": "12345"}}})
+        with patch("requests.Session.request", return_value=mock_response) as mock_request:
+            self.client.check_access()
+            mock_request.assert_called_once()
+            # Verify it sent the me query
+            call_kwargs = mock_request.call_args
+            self.assertIn("me", call_kwargs.kwargs.get("data", "") or call_kwargs[1].get("data", ""))
+
+    def test_check_access_invalid_token(self):
+        """check_access raises MondayUnauthorizedError when the token is invalid."""
+        mock_response = MockResponse(
+            401,
+            {"errors": [{"message": "Not Authenticated", "extensions": {"code": "Unauthorized"}}]})
+        with patch("requests.Session.request", return_value=mock_response):
+            with self.assertRaises(MondayUnauthorizedError):
+                self.client.check_access()
 
 
 class TestWaitIfRetryAfter(unittest.TestCase):

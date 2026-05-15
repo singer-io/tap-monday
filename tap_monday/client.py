@@ -1,4 +1,5 @@
 from typing import Any, Dict, Mapping, Optional, Tuple
+import json
 import time
 
 import backoff
@@ -97,6 +98,15 @@ class Client:
 
     def __exit__(self, exception_type, exception_value, traceback):
         self._session.close()
+
+    def check_access(self):
+        """Validate the API token by making a lightweight authenticated request.
+
+        Raises MondayUnauthorizedError (401) or MondayForbiddenError (403) if
+        the token is invalid or lacks required permissions.
+        """
+        body = json.dumps({"query": "query { me { id } }"})
+        self.make_request("POST", self.base_url, body=body)
 
     @property
     def headers(self) -> Dict[str, str]:
