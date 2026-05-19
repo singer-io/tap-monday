@@ -139,11 +139,12 @@ class BaseStream(ABC):
         Adds identifier fields to a record based on nested object mappings.
         """
         for key in self.object_to_id:
+            mapped_id_field = self.object_to_id[key] + "_id"
             value = record.get(key)
             if value:
-                record[self.object_to_id[key] + "_id"] = value["id"]
+                record[mapped_id_field] = value["id"]
             else:
-                record[key + "_id"] = None
+                record[mapped_id_field] = None
         return record
 
     def modify_object(self, record: Dict, parent_record: Dict = None) -> Dict:

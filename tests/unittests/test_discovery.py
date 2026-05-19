@@ -19,9 +19,9 @@ Covers:
 import json
 import os
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from singer.catalog import Catalog, CatalogEntry
+from singer.catalog import Catalog
 
 from tap_monday.discover import discover
 from tap_monday.schema import get_schemas, get_abs_path
@@ -225,7 +225,7 @@ class TestSchemaFiles(unittest.TestCase):
             with self.subTest(stream=stream_name):
                 try:
                     with open(path) as fh:
-                        schema = json.load(fh)
+                        json.load(fh)
                 except json.JSONDecodeError as exc:
                     self.fail(f"Invalid JSON in '{path}': {exc}")
 
