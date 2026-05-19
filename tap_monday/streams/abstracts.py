@@ -139,8 +139,9 @@ class BaseStream(ABC):
         Adds identifier fields to a record based on nested object mappings.
         """
         for key in self.object_to_id:
-            if record[key]:
-                record[self.object_to_id[key] + "_id"] = record[key]["id"]
+            value = record.get(key)
+            if value:
+                record[self.object_to_id[key] + "_id"] = value["id"]
             else:
                 record[key + "_id"] = None
         return record
@@ -244,7 +245,7 @@ class BaseStream(ABC):
 
         schema_keys = set(properties.keys() if properties else [])
         extra_keys = set(extras_branch.keys()) if extras_branch else set()
-        all_keys = sorted(schema_keys | extra_keys - {"_extras"})
+        all_keys = sorted((schema_keys | extra_keys) - {"_extras"})
 
         all_keys = [
             key for key in all_keys
