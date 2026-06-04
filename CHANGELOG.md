@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.0
+  * Inaccessible streams are excluded from the catalog during discovery instead of raising an error. [#24](https://github.com/singer-io/tap-monday/pull/24)
+
 ## 1.1.0
   * Fixed `SchemaMismatch` on `workspaces` stream — allow null array items in `workspaces`, `docs`, `folders`, `platform_api`, `reply`, and `teams` schemas. [#23](https://github.com/singer-io/tap-monday/pull/23)
   * Fixed set operator precedence bug in `_process_properties` and `KeyError` risk in `add_object_to_id`.

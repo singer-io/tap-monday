@@ -13,6 +13,7 @@ class PlatformApi(IncrementalStream):
     bookmark_value = None
     data_key = "data.platform_api"
     root_field = "platform_api"
+    check_access_fields = "daily_limit { total }"
     excluded_fields = ["last_updated"]
     extra_fields = {
         "daily_analytics.last_updated": []

@@ -14,16 +14,20 @@ Covers:
   8.  get_schemas() returns entries for every STREAMS key.
   9.  discover() propagates exceptions raised by get_schemas().
   10. Schema properties match the corresponding CatalogEntry schema fields.
+  11. Access checks: inaccessible streams excluded from catalog.
+  12. Access checks: child streams removed when parent is excluded.
+  13. Access checks: MondayForbiddenError raised when all parent streams blocked.
 """
 
 import json
 import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from singer.catalog import Catalog
 
-from tap_monday.discover import discover
+from tap_monday.discover import discover, _apply_access_checks, _prune_inaccessible_children
+from tap_monday.exceptions import MondayForbiddenError
 from tap_monday.schema import get_schemas, get_abs_path
 from tap_monday.streams import STREAMS
 
@@ -378,3 +382,217 @@ class TestSchemaPropertyConsistency(unittest.TestCase):
                     actual_fields, expected_fields,
                     f"CatalogEntry schema properties for '{name}' differ from raw schema file"
                 )
+
+
+# ---------------------------------------------------------------------------
+# 11 – Access checks: inaccessible streams excluded from catalog
+# ---------------------------------------------------------------------------
+
+def _make_mock_client():
+    """Return a MagicMock that passes as a tap_monday Client."""
+    client = MagicMock()
+    client.config = {"start_date": "2024-01-01T00:00:00Z"}
+    return client
+
+
+class TestApplyAccessChecks(unittest.TestCase):
+    """_apply_access_checks() must mutate schemas/field_metadata in place."""
+
+    def _schemas_and_metadata(self):
+        return get_schemas()
+
+    def test_all_accessible_leaves_catalog_intact(self):
+        schemas, field_metadata = self._schemas_and_metadata()
+        original_keys = set(schemas.keys())
+        client = _make_mock_client()
+        with patch("tap_monday.discover.STREAMS", {
+            name: _make_accessible_stream_cls(name, cls)
+            for name, cls in STREAMS.items()
+        }):
+            _apply_access_checks(client, schemas, field_metadata)
+        self.assertEqual(set(schemas.keys()), original_keys)
+
+    def test_inaccessible_parent_excluded(self):
+        schemas, field_metadata = self._schemas_and_metadata()
+        client = _make_mock_client()
+        # Make 'audit_event_catalogue' forbidden, all others accessible
+        patched = {
+            name: _make_forbidden_stream_cls(name, cls) if name == "audit_event_catalogue"
+            else _make_accessible_stream_cls(name, cls)
+            for name, cls in STREAMS.items()
+        }
+        with patch("tap_monday.discover.STREAMS", patched):
+            _apply_access_checks(client, schemas, field_metadata)
+        self.assertNotIn("audit_event_catalogue", schemas)
+        self.assertNotIn("audit_event_catalogue", field_metadata)
+
+    def test_inaccessible_stream_warning_is_logged(self):
+        schemas, field_metadata = self._schemas_and_metadata()
+        client = _make_mock_client()
+        patched = {
+            name: _make_forbidden_stream_cls(name, cls) if name == "audit_event_catalogue"
+            else _make_accessible_stream_cls(name, cls)
+            for name, cls in STREAMS.items()
+        }
+        with patch("tap_monday.discover.STREAMS", patched):
+            with patch("tap_monday.discover.LOGGER") as mock_logger:
+                _apply_access_checks(client, schemas, field_metadata)
+                mock_logger.warning.assert_called()
+                warning_call_args = " ".join(
+                    str(a) for a in mock_logger.warning.call_args_list[-1][0]
+                )
+                self.assertIn("audit_event_catalogue", warning_call_args)
+
+    def test_all_parents_inaccessible_raises_forbidden_error(self):
+        schemas, field_metadata = self._schemas_and_metadata()
+        client = _make_mock_client()
+        # Make every parent stream forbidden
+        patched = {
+            name: _make_forbidden_stream_cls(name, cls) if not cls.parent
+            else _make_accessible_stream_cls(name, cls)
+            for name, cls in STREAMS.items()
+        }
+        with patch("tap_monday.discover.STREAMS", patched):
+            with self.assertRaises(MondayForbiddenError):
+                _apply_access_checks(client, schemas, field_metadata)
+
+    def test_discover_with_client_runs_access_checks(self):
+        """discover(client) must call _apply_access_checks."""
+        client = _make_mock_client()
+        with patch("tap_monday.discover._apply_access_checks") as mock_check:
+            discover(client)
+            mock_check.assert_called_once()
+            args = mock_check.call_args[0]
+            self.assertIs(args[0], client)
+
+    def test_discover_without_client_skips_access_checks(self):
+        """discover() with no client must skip _apply_access_checks."""
+        with patch("tap_monday.discover._apply_access_checks") as mock_check:
+            discover()
+            mock_check.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# 12 – Child streams removed when parent is excluded
+# ---------------------------------------------------------------------------
+
+class TestPruneInaccessibleChildren(unittest.TestCase):
+    """_prune_inaccessible_children() must remove orphaned child streams."""
+
+    def _schemas_and_metadata(self):
+        return get_schemas()
+
+    def test_children_of_excluded_parent_are_removed(self):
+        schemas, field_metadata = self._schemas_and_metadata()
+        # Simulate 'boards' being excluded — its children should be pruned
+        schemas.pop("boards", None)
+        field_metadata.pop("boards", None)
+        _prune_inaccessible_children(schemas, field_metadata)
+        board_children = [
+            name for name, cls in STREAMS.items()
+            if cls.parent == "boards"
+        ]
+        for child in board_children:
+            with self.subTest(child=child):
+                self.assertNotIn(child, schemas)
+                self.assertNotIn(child, field_metadata)
+
+    def test_grandchildren_excluded_when_parent_excluded(self):
+        """column_values is a child of board_items which is a child of boards."""
+        schemas, field_metadata = self._schemas_and_metadata()
+        # Remove boards — its child board_items gets pruned first
+        schemas.pop("boards", None)
+        field_metadata.pop("boards", None)
+        _prune_inaccessible_children(schemas, field_metadata)
+        # board_items is now gone; column_values (child of board_items) must also go
+        # Re-apply to simulate cascading
+        _prune_inaccessible_children(schemas, field_metadata)
+        self.assertNotIn("board_items", schemas)
+        self.assertNotIn("column_values", schemas)
+
+    def test_accessible_streams_unaffected_by_pruning(self):
+        schemas, field_metadata = self._schemas_and_metadata()
+        before = set(schemas.keys())
+        _prune_inaccessible_children(schemas, field_metadata)
+        # No parent was removed, so nothing should be pruned
+        self.assertEqual(set(schemas.keys()), before)
+
+    def test_child_warning_logged_when_pruned(self):
+        schemas, field_metadata = self._schemas_and_metadata()
+        schemas.pop("boards", None)
+        field_metadata.pop("boards", None)
+        with patch("tap_monday.discover.LOGGER") as mock_logger:
+            _prune_inaccessible_children(schemas, field_metadata)
+            mock_logger.warning.assert_called()
+
+
+# ---------------------------------------------------------------------------
+# 13 – BaseStream.check_access()
+# ---------------------------------------------------------------------------
+
+class TestBaseStreamCheckAccess(unittest.TestCase):
+    """BaseStream.check_access() must return True/False based on API response."""
+
+    def _make_stream_instance(self, stream_name, forbidden=False):
+        """Instantiate a stream with a mock client that either succeeds or raises 403."""
+        client = _make_mock_client()
+        if forbidden:
+            client.make_request.side_effect = MondayForbiddenError("403 Forbidden")
+        stream_cls = STREAMS[stream_name]
+        return stream_cls(client=client)
+
+    def test_accessible_stream_returns_true(self):
+        stream = self._make_stream_instance("account", forbidden=False)
+        self.assertTrue(stream.check_access())
+
+    def test_forbidden_stream_returns_false(self):
+        stream = self._make_stream_instance("account", forbidden=True)
+        self.assertFalse(stream.check_access())
+
+    def test_child_stream_always_returns_true(self):
+        """Child streams skip the HTTP probe and always return True."""
+        # board_columns has parent="boards"
+        child_stream = self._make_stream_instance("board_columns", forbidden=True)
+        self.assertTrue(child_stream.check_access())
+        # Even though make_request would raise 403, it should never be called
+        child_stream.client.make_request.assert_not_called()
+
+    def test_check_access_makes_request_for_parent(self):
+        stream = self._make_stream_instance("audit_event_catalogue", forbidden=False)
+        stream.check_access()
+        stream.client.make_request.assert_called_once()
+
+    def test_check_access_logs_warning_on_forbidden(self):
+        stream = self._make_stream_instance("account", forbidden=True)
+        with patch("tap_monday.streams.abstracts.LOGGER") as mock_logger:
+            result = stream.check_access()
+            self.assertFalse(result)
+            mock_logger.warning.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Helper factories used by access-check tests
+# ---------------------------------------------------------------------------
+
+def _make_accessible_stream_cls(name, original_cls):
+    """Return a subclass of the original that overrides check_access to return True."""
+    class _Accessible(original_cls):
+        def check_access(self):
+            return True
+    _Accessible.parent = original_cls.parent
+    _Accessible.children = original_cls.children
+    _Accessible.tap_stream_id = original_cls.tap_stream_id
+    _Accessible.__name__ = original_cls.__name__
+    return _Accessible
+
+
+def _make_forbidden_stream_cls(name, original_cls):
+    """Return a subclass of the original that overrides check_access to return False."""
+    class _Forbidden(original_cls):
+        def check_access(self):
+            return False
+    _Forbidden.parent = original_cls.parent
+    _Forbidden.children = original_cls.children
+    _Forbidden.tap_stream_id = original_cls.tap_stream_id
+    _Forbidden.__name__ = original_cls.__name__
+    return _Forbidden

@@ -1,17 +1,18 @@
 from typing import Any, Dict, Mapping, Optional, Tuple
 import json
-import time
 
 import backoff
 import requests
 from requests import session
 from requests.exceptions import Timeout, ConnectionError, ChunkedEncodingError
+
 from singer import get_logger, metrics
 
 from tap_monday.exceptions import (
     ERROR_CODE_EXCEPTION_MAPPING,
     MondayError,
     MondayCursorExpiredError,
+    MondayForbiddenError,
     MondayRateLimitError,
     MondayInternalServerError,
     MondayServiceUnavailableError)
@@ -60,19 +61,29 @@ def raise_for_error(response: requests.Response) -> None:
                     response.status_code, {}).get("message", "Unknown Error")))
         exc = ERROR_CODE_EXCEPTION_MAPPING.get(
             response.status_code, {}).get("raise_exception", MondayError)
+        # Monday returns HTTP 200 for GraphQL-level errors. Map known extension
+        # codes to the appropriate exception so callers can handle them.
+        if response.status_code == 200 and response_json.get("errors"):
+            error_code = response_json["errors"][0].get("extensions", {}).get("code", "")
+            _GRAPHQL_ERROR_CODE_MAPPING = {
+                "UserUnauthorizedException": MondayForbiddenError,
+                "INTERNAL_SERVER_ERROR": MondayInternalServerError,
+            }
+            exc = _GRAPHQL_ERROR_CODE_MAPPING.get(error_code, exc)
         raise exc(message, response) from None
 
-def wait_if_retry_after(details):
-    """Backoff handler that checks for a 'retry_after' attribute in the exception
-    and sleeps for the specified duration to respect API rate limits.
+def get_retry_after(exception_info):
+    """Returns the retry_after value from RateLimitError exception.
+    This is used by backoff.runtime to determine wait time.
     """
-    exc = details.get('exception')
-    if exc is None:
-        # Fallback: backoff library may pass exception in args[0] depending on execution context
-        args = details.get('args') or ()
-        exc = args[0] if args else None
-    if exc and hasattr(exc, 'retry_after') and exc.retry_after is not None:
-        time.sleep(exc.retry_after)  # Force exact wait
+    exception = exception_info.get('exception') if isinstance(exception_info, dict) else exception_info
+
+    if exception and isinstance(exception, MondayRateLimitError):
+        retry_after = exception.retry_after or 60
+        LOGGER.info(f"Rate limited. Waiting {retry_after} seconds...")
+        return retry_after
+
+    return 60  # Default fallback
 
 class Client:
     """
@@ -146,19 +157,50 @@ class Client:
         headers, params = self.authenticate(headers, params)
         return self.__make_request(method, endpoint, headers=headers, params=params, data=body, timeout=self.request_timeout)
 
+    def probe_request(
+        self,
+        method: str,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, Any]] = None,
+        body: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        """Single-shot request with no backoff or retry — intended for access
+        probes during discovery where retrying is not appropriate."""
+        params = params or {}
+        headers = headers or {}
+        body = body or {}
+        headers, params = self.authenticate(headers, params)
+        response = self._session.request(
+            method.upper(), endpoint,
+            headers=headers, params=params, data=body,
+            timeout=self.request_timeout,
+        )
+        raise_for_error(response)
+        return response.json()
+
     @backoff.on_exception(
-        wait_gen=lambda: backoff.expo(factor=2),
-        on_backoff=wait_if_retry_after,
+        wait_gen=backoff.expo,
         exception=(
             ConnectionResetError,
             ConnectionError,
             ChunkedEncodingError,
             Timeout,
-            MondayRateLimitError,
             MondayInternalServerError,
-            MondayServiceUnavailableError
+            MondayServiceUnavailableError,
         ),
-        max_tries=5
+        max_tries=5,
+        factor=2,
+        giveup=lambda e: isinstance(e, MondayRateLimitError),
+    )
+    @backoff.on_exception(
+        backoff.runtime,
+        exception=(
+            MondayRateLimitError,
+        ),
+        max_tries=5,
+        value=get_retry_after,
+        jitter=None,
     )
     def __make_request(self, method: str, endpoint: str, **kwargs) -> Optional[Mapping[Any, Any]]:
         """
