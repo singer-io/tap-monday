@@ -91,17 +91,24 @@ def _collect_bad_items(schema, path=""):
 class TestDiscoverReturnsCatalog(unittest.TestCase):
     """discover() must return a populated singer Catalog."""
 
+    def setUp(self):
+        self.client = _make_mock_client()
+        # Make all streams accessible so discover() completes without error
+        patcher = patch("tap_monday.discover._apply_access_checks")
+        self.mock_access = patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_returns_catalog_instance(self):
-        catalog = discover()
+        catalog = discover(self.client)
         self.assertIsInstance(catalog, Catalog)
 
     def test_catalog_has_all_streams(self):
-        catalog = discover()
+        catalog = discover(self.client)
         catalog_stream_names = {entry.stream for entry in catalog.streams}
         self.assertEqual(catalog_stream_names, set(STREAMS.keys()))
 
     def test_no_duplicate_streams(self):
-        catalog = discover()
+        catalog = discover(self.client)
         names = [entry.stream for entry in catalog.streams]
         self.assertEqual(len(names), len(set(names)),
                          "discover() produced duplicate catalog entries")
@@ -116,7 +123,9 @@ class TestCatalogEntryFields(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.catalog = discover()
+        client = _make_mock_client()
+        with patch("tap_monday.discover._apply_access_checks"):
+            cls.catalog = discover(client)
         cls.entries = {e.stream: e for e in cls.catalog.streams}
 
     def test_stream_equals_tap_stream_id(self):
@@ -169,7 +178,9 @@ class TestFieldInclusionMetadata(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.catalog = discover()
+        client = _make_mock_client()
+        with patch("tap_monday.discover._apply_access_checks"):
+            cls.catalog = discover(client)
 
     def test_all_fields_have_inclusion(self):
         from singer import metadata as md
@@ -191,7 +202,9 @@ class TestFieldInclusionMetadata(unittest.TestCase):
         for name, stream_cls in STREAMS.items():
             if not stream_cls.replication_keys:
                 continue
-            catalog = discover()
+            client = _make_mock_client()
+            with patch("tap_monday.discover._apply_access_checks"):
+                catalog = discover(client)
             entries = {e.stream: e for e in catalog.streams}
             entry = entries[name]
             mdata_map = md.to_map(entry.metadata)
@@ -341,12 +354,12 @@ class TestDiscoverErrorHandling(unittest.TestCase):
     @patch("tap_monday.discover.get_schemas", side_effect=FileNotFoundError("missing schema"))
     def test_propagates_file_not_found(self, _mock):
         with self.assertRaises(FileNotFoundError):
-            discover()
+            discover(_make_mock_client())
 
     @patch("tap_monday.discover.get_schemas", side_effect=json.JSONDecodeError("bad json", "", 0))
     def test_propagates_json_decode_error(self, _mock):
         with self.assertRaises(json.JSONDecodeError):
-            discover()
+            discover(_make_mock_client())
 
     @patch("tap_monday.discover.get_schemas")
     def test_propagates_schema_key_error(self, mock_get_schemas):
@@ -356,7 +369,7 @@ class TestDiscoverErrorHandling(unittest.TestCase):
             {"bad_stream": []}
         )
         with self.assertRaises(Exception):
-            discover()
+            discover(_make_mock_client())
 
 
 # ---------------------------------------------------------------------------
@@ -368,7 +381,9 @@ class TestSchemaPropertyConsistency(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.catalog = discover()
+        client = _make_mock_client()
+        with patch("tap_monday.discover._apply_access_checks"):
+            cls.catalog = discover(client)
         cls.entries = {e.stream: e for e in cls.catalog.streams}
         cls.raw_schemas = _load_all_schemas()
 
@@ -466,10 +481,9 @@ class TestApplyAccessChecks(unittest.TestCase):
             self.assertIs(args[0], client)
 
     def test_discover_without_client_skips_access_checks(self):
-        """discover() with no client must skip _apply_access_checks."""
-        with patch("tap_monday.discover._apply_access_checks") as mock_check:
+        """discover() always calls _apply_access_checks — client is required."""
+        with self.assertRaises(TypeError):
             discover()
-            mock_check.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -537,7 +551,7 @@ class TestBaseStreamCheckAccess(unittest.TestCase):
         """Instantiate a stream with a mock client that either succeeds or raises 403."""
         client = _make_mock_client()
         if forbidden:
-            client.make_request.side_effect = MondayForbiddenError("403 Forbidden")
+            client.probe_request.side_effect = MondayForbiddenError("403 Forbidden")
         stream_cls = STREAMS[stream_name]
         return stream_cls(client=client)
 
@@ -554,13 +568,13 @@ class TestBaseStreamCheckAccess(unittest.TestCase):
         # board_columns has parent="boards"
         child_stream = self._make_stream_instance("board_columns", forbidden=True)
         self.assertTrue(child_stream.check_access())
-        # Even though make_request would raise 403, it should never be called
-        child_stream.client.make_request.assert_not_called()
+        # Even though probe_request would raise 403, it should never be called
+        child_stream.client.probe_request.assert_not_called()
 
     def test_check_access_makes_request_for_parent(self):
         stream = self._make_stream_instance("audit_event_catalogue", forbidden=False)
         stream.check_access()
-        stream.client.make_request.assert_called_once()
+        stream.client.probe_request.assert_called_once()
 
     def test_check_access_logs_warning_on_forbidden(self):
         stream = self._make_stream_instance("account", forbidden=True)

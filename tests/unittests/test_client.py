@@ -3,7 +3,7 @@ from parameterized import parameterized
 from unittest.mock import patch, MagicMock
 from requests import Timeout, ConnectionError
 
-from tap_monday.client import Client, raise_for_error, wait_if_retry_after
+from tap_monday.client import Client, raise_for_error, get_retry_after
 from tap_monday.exceptions import (
     ERROR_CODE_EXCEPTION_MAPPING,
     MondayError,
@@ -167,98 +167,38 @@ class TestCheckAccess(unittest.TestCase):
                 self.client.check_access()
 
 
-class TestWaitIfRetryAfter(unittest.TestCase):
-    """Test the wait_if_retry_after backoff handler function."""
+class TestGetRetryAfter(unittest.TestCase):
+    """Test the get_retry_after backoff value function."""
 
-    @patch('time.sleep')
-    def test_wait_if_retry_after_with_retry_after_attribute(self, mock_sleep):
-        """Test that the handler sleeps for the exact duration from retry_after."""
-        # Create a mock exception with retry_after attribute
-        mock_exception = MagicMock()
-        mock_exception.retry_after = 5
-
-        details = {'exception': mock_exception}
-        wait_if_retry_after(details)
-
-        # Verify it slept for the exact duration
-        mock_sleep.assert_called_once_with(5)
-
-    @patch('time.sleep')
-    def test_wait_if_retry_after_with_none_retry_after(self, mock_sleep):
-        """Test that the handler does not sleep when retry_after is None."""
-        mock_exception = MagicMock()
-        mock_exception.retry_after = None
-
-        details = {'exception': mock_exception}
-        wait_if_retry_after(details)
-
-        # Verify it did not sleep
-        mock_sleep.assert_not_called()
-
-    @patch('time.sleep')
-    def test_wait_if_retry_after_without_retry_after_attribute(self, mock_sleep):
-        """Test that the handler does not sleep when exception has no retry_after attribute."""
-        mock_exception = MagicMock(spec=[])
-
-        details = {'exception': mock_exception}
-        wait_if_retry_after(details)
-
-        # Verify it did not sleep
-        mock_sleep.assert_not_called()
-
-    @patch('time.sleep')
-    def test_wait_if_retry_after_with_exception_in_args(self, mock_sleep):
-        """Test that the handler finds the exception in args[0] when not in 'exception' key."""
-        mock_exception = MagicMock()
-        mock_exception.retry_after = 10
-
-        details = {'args': (mock_exception,)}
-        wait_if_retry_after(details)
-
-        # Verify it slept for the exact duration
-        mock_sleep.assert_called_once_with(10)
-
-    @patch('time.sleep')
-    def test_wait_if_retry_after_with_no_exception(self, mock_sleep):
-        """Test that the handler does not sleep when no exception is present."""
-        details = {}
-        wait_if_retry_after(details)
-
-        # Verify it did not sleep
-        mock_sleep.assert_not_called()
-
-    @patch('time.sleep')
-    def test_wait_if_retry_after_with_real_rate_limit_error(self, mock_sleep):
-        """Test with an actual MondayRateLimitError instance."""
-        # Create a mock response with retry_in_seconds
+    def test_rate_limit_error_with_retry_after(self):
+        """Returns retry_after seconds from a MondayRateLimitError."""
         mock_response = MockResponse(
             status_code=429,
-            json_data={
-                "errors": [{
-                    "message": "Rate limit exceeded",
-                    "extensions": {
-                        "code": "RATE_LIMIT",
-                        "retry_in_seconds": 15
-                    }
-                }]
-            }
+            json_data={"errors": [{"message": "Rate limit", "extensions": {"code": "RATE_LIMIT", "retry_in_seconds": 15}}]}
         )
-
-        # Create actual exception with the response
         exc = MondayRateLimitError(response=mock_response)
+        self.assertEqual(get_retry_after({'exception': exc}), 15)
 
-        details = {'exception': exc}
-        wait_if_retry_after(details)
+    def test_rate_limit_error_with_none_retry_after(self):
+        """Returns 60 (default) when retry_after is None on a MondayRateLimitError."""
+        mock_response = MockResponse(status_code=429, json_data={"errors": [{"message": "Rate limit"}]})
+        exc = MondayRateLimitError(response=mock_response)
+        self.assertEqual(get_retry_after({'exception': exc}), 60)
 
-        # Verify it slept for the exact duration from the API response
-        mock_sleep.assert_called_once_with(15)
+    def test_non_rate_limit_exception_returns_default(self):
+        """Returns 60 when the exception is not a MondayRateLimitError."""
+        self.assertEqual(get_retry_after({'exception': Exception("other")}), 60)
 
-    @patch('time.sleep')
-    def test_wait_if_retry_after_with_empty_args(self, mock_sleep):
-        """Test that the handler handles empty args gracefully."""
-        details = {'args': ()}
-        wait_if_retry_after(details)
+    def test_no_exception_returns_default(self):
+        """Returns 60 when no exception key is present."""
+        self.assertEqual(get_retry_after({}), 60)
 
-        # Verify it did not sleep
-        mock_sleep.assert_not_called()
+    def test_exception_passed_directly(self):
+        """Accepts the exception object directly (not wrapped in a dict)."""
+        mock_response = MockResponse(
+            status_code=429,
+            json_data={"errors": [{"message": "Rate limit", "extensions": {"code": "RATE_LIMIT", "retry_in_seconds": 30}}]}
+        )
+        exc = MondayRateLimitError(response=mock_response)
+        self.assertEqual(get_retry_after(exc), 30)
 
