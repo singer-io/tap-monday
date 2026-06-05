@@ -27,7 +27,7 @@ from unittest.mock import MagicMock, patch
 from singer.catalog import Catalog
 
 from tap_monday.discover import discover, _apply_access_checks, _prune_inaccessible_children
-from tap_monday.exceptions import MondayForbiddenError
+from tap_monday.exceptions import MondayForbiddenError, MondayInternalServerError
 from tap_monday.schema import get_schemas, get_abs_path
 from tap_monday.streams import STREAMS
 
@@ -471,6 +471,30 @@ class TestApplyAccessChecks(unittest.TestCase):
             with self.assertRaises(MondayForbiddenError):
                 _apply_access_checks(client, schemas, field_metadata)
 
+    def test_all_parents_inaccessible_via_500_raises_internal_server_error(self):
+        """When all failures are 500s (not 403s), MondayInternalServerError must be raised."""
+        schemas, field_metadata = self._schemas_and_metadata()
+        client = _make_mock_client()
+
+        def _make_500_stream_cls(name, original_cls):
+            class _ServerError(original_cls):
+                def check_access(self):
+                    return MondayInternalServerError("500")
+            _ServerError.parent = original_cls.parent
+            _ServerError.children = original_cls.children
+            _ServerError.tap_stream_id = original_cls.tap_stream_id
+            _ServerError.__name__ = original_cls.__name__
+            return _ServerError
+
+        patched = {
+            name: _make_500_stream_cls(name, cls) if not cls.parent
+            else _make_accessible_stream_cls(name, cls)
+            for name, cls in STREAMS.items()
+        }
+        with patch("tap_monday.discover.STREAMS", patched):
+            with self.assertRaises(MondayInternalServerError):
+                _apply_access_checks(client, schemas, field_metadata)
+
     def test_discover_with_client_runs_access_checks(self):
         """discover(client) must call _apply_access_checks."""
         client = _make_mock_client()
@@ -545,7 +569,7 @@ class TestPruneInaccessibleChildren(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 class TestBaseStreamCheckAccess(unittest.TestCase):
-    """BaseStream.check_access() must return True/False based on API response."""
+    """BaseStream.check_access() must return None or an exception based on API response."""
 
     def _make_stream_instance(self, stream_name, forbidden=False):
         """Instantiate a stream with a mock client that either succeeds or raises 403."""
@@ -555,19 +579,24 @@ class TestBaseStreamCheckAccess(unittest.TestCase):
         stream_cls = STREAMS[stream_name]
         return stream_cls(client=client)
 
-    def test_accessible_stream_returns_true(self):
+    def test_accessible_stream_returns_none(self):
         stream = self._make_stream_instance("account", forbidden=False)
-        self.assertTrue(stream.check_access())
+        self.assertIsNone(stream.check_access())
 
-    def test_forbidden_stream_returns_false(self):
+    def test_forbidden_stream_returns_exception(self):
         stream = self._make_stream_instance("account", forbidden=True)
-        self.assertFalse(stream.check_access())
+        self.assertIsInstance(stream.check_access(), MondayForbiddenError)
 
-    def test_child_stream_always_returns_true(self):
-        """Child streams skip the HTTP probe and always return True."""
+    def test_internal_server_error_stream_returns_exception(self):
+        stream = self._make_stream_instance("account")
+        stream.client.probe_request.side_effect = MondayInternalServerError("500")
+        self.assertIsInstance(stream.check_access(), MondayInternalServerError)
+
+    def test_child_stream_always_returns_none(self):
+        """Child streams skip the HTTP probe and always return None."""
         # board_columns has parent="boards"
         child_stream = self._make_stream_instance("board_columns", forbidden=True)
-        self.assertTrue(child_stream.check_access())
+        self.assertIsNone(child_stream.check_access())
         # Even though probe_request would raise 403, it should never be called
         child_stream.client.probe_request.assert_not_called()
 
@@ -580,7 +609,7 @@ class TestBaseStreamCheckAccess(unittest.TestCase):
         stream = self._make_stream_instance("account", forbidden=True)
         with patch("tap_monday.streams.abstracts.LOGGER") as mock_logger:
             result = stream.check_access()
-            self.assertFalse(result)
+            self.assertIsInstance(result, MondayForbiddenError)
             mock_logger.warning.assert_called_once()
 
 
@@ -589,10 +618,10 @@ class TestBaseStreamCheckAccess(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 def _make_accessible_stream_cls(name, original_cls):
-    """Return a subclass of the original that overrides check_access to return True."""
+    """Return a subclass of the original that overrides check_access to return None (accessible)."""
     class _Accessible(original_cls):
         def check_access(self):
-            return True
+            return None
     _Accessible.parent = original_cls.parent
     _Accessible.children = original_cls.children
     _Accessible.tap_stream_id = original_cls.tap_stream_id
@@ -601,10 +630,10 @@ def _make_accessible_stream_cls(name, original_cls):
 
 
 def _make_forbidden_stream_cls(name, original_cls):
-    """Return a subclass of the original that overrides check_access to return False."""
+    """Return a subclass of the original that overrides check_access to return a MondayForbiddenError."""
     class _Forbidden(original_cls):
         def check_access(self):
-            return False
+            return MondayForbiddenError("403 Forbidden")
     _Forbidden.parent = original_cls.parent
     _Forbidden.children = original_cls.children
     _Forbidden.tap_stream_id = original_cls.tap_stream_id

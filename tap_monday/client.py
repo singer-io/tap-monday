@@ -191,7 +191,6 @@ class Client:
         ),
         max_tries=5,
         factor=2,
-        giveup=lambda e: isinstance(e, MondayRateLimitError),
     )
     @backoff.on_exception(
         backoff.runtime,

@@ -81,39 +81,39 @@ class BaseStream(ABC):
     def key_properties(self) -> Tuple[str, str]:
         """List of key properties for stream."""
 
-    def check_access(self) -> bool:
+    def check_access(self):
         """
         Verify that the API credentials have read access to this stream.
-        Returns True if accessible, False if a 403 Forbidden error is raised.
-        Child streams always return True (access is governed by the parent check).
+        Returns None if accessible, or the caught exception if not.
+        Child streams always return None (access is governed by the parent check).
         """
         if self.parent:
-            return True
+            return None
 
         root_bare = (self.root_field or "").split("(")[0].strip()
         if not root_bare:
-            return True
+            return None
 
         url = self.get_url_endpoint()
         self.update_params()
         body = json.dumps({"query": f"query {{ {root_bare} {{ {self.check_access_fields} }} }}"})
         try:
             self.client.probe_request(self.http_method, url, self.params, self.headers, body=body)
-            return True
-        except MondayForbiddenError:
+            return None
+        except MondayForbiddenError as e:
             LOGGER.warning(
                 "Stream '%s' does not have read permission (403), excluding from catalog.",
                 self.__class__.__name__,
             )
-            return False
-        except MondayInternalServerError:
+            return e
+        except MondayInternalServerError as e:
             LOGGER.warning(
                 "Stream '%s' returned a server error (500) during access check — "
                 "this likely indicates a missing app installation or insufficient permissions. "
                 "Excluding from catalog.",
                 self.__class__.__name__,
             )
-            return False
+            return e
 
     def is_selected(self):
         return metadata.get(self.metadata, (), "selected")
