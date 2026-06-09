@@ -123,8 +123,7 @@ class MondayBaseTest(BaseCase):
                 cls.REPLICATION_METHOD: cls.INCREMENTAL,
                 cls.REPLICATION_KEYS: { "last_updated" },
                 cls.RESPECTS_START_DATE: True,
-                cls.API_LIMIT: 1,
-                cls.IS_FORBIDDEN_STREAM: True
+                cls.API_LIMIT: 1
             },
             "reply": {
                 cls.PRIMARY_KEYS: { "id", "update_id" },

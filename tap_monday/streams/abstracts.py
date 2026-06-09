@@ -118,9 +118,10 @@ class BaseStream(ABC):
     def is_selected(self):
         return metadata.get(self.metadata, (), "selected")
 
-    def prune_inaccessible_fields(self, schema: dict) -> None:
+    def prune_inaccessible_fields(self, schema: dict, field_metadata: list) -> None:
         """Probe individual fields that may not be accessible on all plans and
         remove them from *schema* (mutates in place) if the API returns an error.
+        Also removes the corresponding metadata entries from *field_metadata*.
         Override in subclasses that have plan-gated fields.
         Default implementation is a no-op.
         """

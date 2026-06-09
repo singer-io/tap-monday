@@ -48,7 +48,9 @@ def _apply_access_checks(client, schemas: dict, field_metadata: dict) -> None:
     for stream_name in list(schemas.keys()):
         stream_cls = STREAMS.get(stream_name)
         if stream_cls:
-            stream_cls(client=client).prune_inaccessible_fields(schemas[stream_name])
+            stream_cls(client=client).prune_inaccessible_fields(
+                schemas[stream_name], field_metadata[stream_name]
+            )
 
     if inaccessible_streams:
         total_parent_streams = len([s for s in STREAMS.values() if not s.parent])
