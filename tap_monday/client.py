@@ -13,6 +13,7 @@ from tap_monday.exceptions import (
     MondayError,
     MondayCursorExpiredError,
     MondayForbiddenError,
+    MondayGraphQLInternalError,
     MondayRateLimitError,
     MondayInternalServerError,
     MondayServiceUnavailableError)
@@ -67,7 +68,7 @@ def raise_for_error(response: requests.Response) -> None:
             error_code = response_json["errors"][0].get("extensions", {}).get("code", "")
             _GRAPHQL_ERROR_CODE_MAPPING = {
                 "UserUnauthorizedException": MondayForbiddenError,
-                "INTERNAL_SERVER_ERROR": MondayInternalServerError,
+                "INTERNAL_SERVER_ERROR": MondayGraphQLInternalError,
             }
             exc = _GRAPHQL_ERROR_CODE_MAPPING.get(error_code, exc)
         raise exc(message, response) from None
@@ -80,7 +81,7 @@ def get_retry_after(exception_info):
 
     if exception and isinstance(exception, MondayRateLimitError):
         retry_after = exception.retry_after or 60
-        LOGGER.info(f"Rate limited. Waiting {retry_after} seconds...")
+        LOGGER.info("Rate limited. Waiting %s seconds...", retry_after)
         return retry_after
 
     return 60  # Default fallback
@@ -163,7 +164,7 @@ class Client:
         endpoint: str,
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, Any]] = None,
-        body: Optional[Dict[str, Any]] = None,
+        body: Optional[Any] = None,
     ) -> Any:
         """Single-shot request with no backoff or retry — intended for access
         probes during discovery where retrying is not appropriate."""

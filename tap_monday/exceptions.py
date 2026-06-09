@@ -72,6 +72,15 @@ class MondayInternalServerError(MondayBackoffError):
     """class representing 500 status code."""
     pass
 
+
+class MondayGraphQLInternalError(MondayError):
+    """Raised when the Monday.com GraphQL API returns an INTERNAL_SERVER_ERROR extension code
+    on an otherwise HTTP-200 response. This is distinct from MondayInternalServerError
+    (HTTP 500) and typically indicates a plan restriction or unsupported feature
+    rather than a transient server failure, so it is not retried by backoff.
+    """
+    pass
+
 class MondayNotImplementedError(MondayBackoffError):
     """class representing 501 status code."""
     pass

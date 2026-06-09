@@ -191,7 +191,7 @@ class MondayBaseTest(BaseCase):
         return return_value
 
     def expected_stream_names(self):
-        """The expected stream names and exclude forbidden streams."""
+        """The expected stream names and excludes forbidden streams."""
         return {
             stream_name
             for stream_name, metadata in self.expected_metadata().items()
