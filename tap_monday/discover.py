@@ -52,13 +52,12 @@ def _apply_access_checks(client, schemas: dict, field_metadata: dict) -> None:
                 schemas[stream_name], field_metadata[stream_name]
             )
 
+    if not schemas:
+        raise MondayForbiddenError(
+            "HTTP-error-code: 403, Error: The account credentials supplied do not have 'read' access to any "
+            "of the streams supported by the tap. Data collection cannot be initiated due to lack of permissions."
+        )
     if inaccessible_streams:
-        total_parent_streams = len([s for s in STREAMS.values() if not s.parent])
-        if len(inaccessible_streams) == total_parent_streams:
-            raise MondayForbiddenError(
-                "HTTP-error-code: 403, Error: The account credentials supplied do not have 'read' access to any "
-                "of the streams supported by the tap. Data collection cannot be initiated due to lack of permissions."
-            )
         LOGGER.warning(
             "The account credentials supplied do not have 'read' access to the following stream(s): %s. "
             "These streams have been excluded from the catalog.",
