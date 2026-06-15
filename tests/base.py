@@ -18,6 +18,7 @@ class MondayBaseTest(BaseCase):
     in tap-tester tests. Shared tap-specific methods (as needed).
     """
     start_date = "2019-01-01T00:00:00Z"
+    IS_FORBIDDEN_STREAM = "is-forbidden-stream"
 
     @staticmethod
     def tap_name():
@@ -187,3 +188,11 @@ class MondayBaseTest(BaseCase):
             "start_date": self.start_date
         }
         return return_value
+
+    def expected_stream_names(self):
+        """The expected stream names and excludes forbidden streams."""
+        return {
+            stream_name
+            for stream_name, metadata in self.expected_metadata().items()
+            if not metadata.get(self.IS_FORBIDDEN_STREAM, False)
+        }

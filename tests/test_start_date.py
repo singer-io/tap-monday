@@ -26,6 +26,7 @@ class MondayStartDateTest(StartDateTest, MondayBaseTest):
             # platform_api returns only 1 system-level record (API usage analytics),
             # insufficient for start date testing
             "platform_api",
+            "board_activity_logs",
             "tags",
             "teams",
             # updates stream has all records with updated_at >= start_date_2,

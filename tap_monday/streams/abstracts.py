@@ -11,6 +11,7 @@ from singer import (
     write_schema,
     metadata
 )
+from tap_monday.exceptions import MondayForbiddenError, MondayGraphQLInternalError
 
 LOGGER = get_logger()
 
@@ -38,6 +39,7 @@ class BaseStream(ABC):
     parent_bookmark_key = ""
     graphql_query_key = "query"
     root_field = None
+    check_access_fields = "__typename"
     extra_fields = {}
     excluded_fields = []
     pagination_supported = False
@@ -46,12 +48,13 @@ class BaseStream(ABC):
     def __init__(self, client=None, catalog=None) -> None:
         self.client = client
         self.catalog = catalog
-        self.schema = catalog.schema.to_dict()
-        self.metadata = metadata.to_map(catalog.metadata)
+        self.schema = catalog.schema.to_dict() if catalog else {}
+        self.metadata = metadata.to_map(catalog.metadata) if catalog else {}
         self.child_to_sync = []
         self.params = {}
         self.data_payload = {}
         self.http_method = "POST"
+        self.page_size = self.client.config.get("page_size", self.page_size) if client else self.page_size
 
     @property
     @abstractmethod
@@ -78,8 +81,51 @@ class BaseStream(ABC):
     def key_properties(self) -> Tuple[str, str]:
         """List of key properties for stream."""
 
+    def check_access(self) -> bool:
+        """
+        Verify that the API credentials have read access to this stream.
+        Returns True if accessible, False if not.
+        Child streams always return True (access is governed by the parent check).
+        """
+        if self.parent:
+            return True
+
+        root_bare = (self.root_field or "").split("(")[0].strip()
+        if not root_bare:
+            return True
+
+        url = self.get_url_endpoint()
+        self.update_params()
+        body = json.dumps({"query": f"query {{ {root_bare} {{ {self.check_access_fields} }} }}"})
+        try:
+            self.client.probe_request(self.http_method, url, self.params, self.headers, body=body)
+            return True
+        except MondayForbiddenError:
+            LOGGER.warning(
+                "Stream '%s' does not have read permission (403), excluding from catalog.",
+                self.__class__.__name__,
+            )
+            return False
+        except MondayGraphQLInternalError:
+            LOGGER.warning(
+                "Stream '%s' returned a server error during access check — "
+                "this likely indicates a missing app installation or insufficient permissions. "
+                "Excluding from catalog.",
+                self.__class__.__name__,
+            )
+            return False
+
     def is_selected(self):
         return metadata.get(self.metadata, (), "selected")
+
+    def prune_inaccessible_fields(self, schema: dict, field_metadata: list) -> None:
+        """Probe individual fields that may not be accessible on all plans and
+        remove them from *schema* (mutates in place) if the API returns an error.
+        Also removes the corresponding metadata entries from *field_metadata*.
+        Override in subclasses that have plan-gated fields.
+        Default implementation is a no-op.
+        """
+        pass
 
     @abstractmethod
     def sync(

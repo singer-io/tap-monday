@@ -9,7 +9,6 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
     initial_bookmarks = {
         "bookmarks": {
             "boards": { "updated_at" : "2020-01-01T00:00:00Z"},
-            "board_activity_logs": { "created_at" : "2020-01-01T00:00:00Z"},
             "board_items": { "updated_at" : "2020-01-01T00:00:00Z"},
             "updates": { "updated_at" : "2020-01-01T00:00:00Z"},
             "reply": { "updated_at" : "2020-01-01T00:00:00Z"},
@@ -35,7 +34,8 @@ class MondayBookMarkTest(BookmarkTest, MondayBaseTest):
             "account",
             "assets",
             "users",
-            "platform_api"
+            "platform_api",
+            "board_activity_logs"
         }
         return self.expected_stream_names().difference(streams_to_exclude)
 
